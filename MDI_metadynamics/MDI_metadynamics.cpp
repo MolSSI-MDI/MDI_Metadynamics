@@ -45,8 +45,31 @@ int main(int argc, char **argv) {
     throw runtime_error("The -mdi command line option was not provided.");
   }
 
+  // Metadynamics
+  int niterations = 10;  // Number of MD iterations
+  int natoms;
+  double coords[3*natoms];
+  double forces[3*natoms];
+  char* engine_name = new char[MDI_NAME_LENGTH];
+
   // Connect to the engines
-  // <YOUR CODE GOES HERE>
+  MDI_Comm comm = MDI_NULL_COMM;
+  comm = MDI_Accept_Communicator();
+ 
+  // Get engine name
+  MDI_Send_Command("<NAME", comm); 
+  MDI_Recv(engine_name, MDI_NAME_LENGTH, MDI_CHAR, comm);
+  cout << "Engine name: " << engine_name << endl;
+
+  // Get number of atoms
+  MDI_Send_Command("<NATOMS", comm);
+  MDI_Recv(&natoms, 1, MDI_INT, comm);
+  
+  cout << "Number of atoms: " << natoms << endl;
+  
+  
+
+
 
   // Perform the simulation
   // <YOUR CODE GOES HERE>
@@ -55,6 +78,7 @@ int main(int argc, char **argv) {
   // <YOUR CODE GOES HERE>
 
   // Synchronize all MPI ranks
+  MDI_Send_Command("EXIT", comm);
   MPI_Barrier(world_comm);
 
   return 0;
