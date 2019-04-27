@@ -20,7 +20,7 @@ include_directories(${MDI_LOCATION})
 # Compile the driver
 
 add_executable(MDI_metadynamics
-               MDI_metadynamics.cpp dihedral.h)
+		MDI_metadynamics.cpp Dihedral.h)
 target_link_libraries(MDI_metadynamics mdi
                       ${MPI_LIBRARIES})
 
