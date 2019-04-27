@@ -2,6 +2,7 @@
 #include <mpi.h>
 #include <stdexcept>
 #include <string.h>
+#include "dihedral.h"
 extern "C" {
 #include "mdi.h"
 }
