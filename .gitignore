@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Lammps files
+*.out
+*.lammps
+
 # C extensions
 *.so
 
