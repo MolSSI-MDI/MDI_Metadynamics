@@ -1,6 +1,9 @@
+#include "CollectiveVariable.h"
+
 using namespace std;
 
-class Dihedral
+
+class Dihedral: public CollectiveVariable
 {
 	private:
 		int atom1, atom2, atom3, atom4;
@@ -13,9 +16,8 @@ class Dihedral
 			a4 = a4;
 		}
 
-		double compute_dihedral() {
-  			double dihedral = 3.14;
-  			return dihedral;
+		void Evaluate() override {
+			value_ = 1.0;
 		}
 };
 

@@ -2,7 +2,7 @@
 #include <mpi.h>
 #include <stdexcept>
 #include <string.h>
-#include "dihedral.h"
+#include "Dihedral.h"
 extern "C" {
 #include "mdi.h"
 }
@@ -52,6 +52,7 @@ int main(int argc, char **argv) {
   double coords[3*natoms];
   double forces[3*natoms];
   char* engine_name = new char[MDI_NAME_LENGTH];
+//  Dihedral psi(1,2,3,4), chi(5, 6, 7, 8);
 
   // Connect to the engines
   MDI_Comm comm = MDI_NULL_COMM;
@@ -68,7 +69,21 @@ int main(int argc, char **argv) {
   
   cout << "Number of atoms: " << natoms << endl;
   
-  
+  // Initialize MD simulation
+  MDI_Send_Command("MD_INIT", comm);
+
+  MDI_Send_Command("<COORDS", comm);
+  MDI_Recv(&coords, 3*natoms, MDI_DOUBLE, comm);
+
+  ////TODO: Would be nice to access coords as matrix
+ //// psi = Dihedral(1, 2, 3, 4);
+
+  //MDI_Send_Command("@FORCES", comm);
+
+  //MDI_Send_Command("<FORCES", comm);
+  //MDI_Send(&forces, 3*natoms, MDI_DOUBLE, comm);
+
+  //MDI_Send_Command("@COORDS", comm);
 
 
 
