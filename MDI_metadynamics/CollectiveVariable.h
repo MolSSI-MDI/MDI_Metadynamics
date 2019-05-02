@@ -1,13 +1,14 @@
 #include <array>
 #include <cmath>
+#include "Utils.h"
 
 using namespace std;
 
 class CollectiveVariable
 {
 	protected:
-		std::array<double, 2> bounds_;
-		// std::array<double, 3> grad_;
+		array2d bounds_;
+		// array3d grad_;
 		double value_;
 	public:
 
@@ -20,109 +21,64 @@ class CollectiveVariable
 class Dihedral: public CollectiveVariable
 {
         private:
-                int atom1_, atom2_, atom3_, atom4_;
+                int atomi_, atomj_, atomk_, atoml_;
 
 
         public:
 
                 Dihedral(int a1, int a2, int a3, int a4) {
-                        atom1_ = a1;
-                        atom2_ = a2;
-                        atom3_ = a3;
-                        atom4_ = a4;
+                        atomi_ = a1;
+                        atomj_ = a2;
+                        atomk_ = a3;
+                        atoml_ = a4;
                 }
 
                 double Evaluate(const double xyz[], int natoms) override {
 			const double bohr_to_ang = 0.529177;
-			std::array<double, 3> atom1_xyz, atom2_xyz, atom3_xyz, atom4_xyz;
-			atom1_xyz[0]=*(xyz+3*atom1_)*bohr_to_ang;
-			atom1_xyz[1]=*(xyz+3*atom1_+1)*bohr_to_ang;
-			atom1_xyz[2]=*(xyz+3*atom1_+2)*bohr_to_ang;
+			array3d atomi_xyz, atomj_xyz, atomk_xyz, atoml_xyz;
+			atomi_xyz[0]=*(xyz+3*atomi_)*bohr_to_ang;
+			atomi_xyz[1]=*(xyz+3*atomi_+1)*bohr_to_ang;
+			atomi_xyz[2]=*(xyz+3*atomi_+2)*bohr_to_ang;
 
-			atom2_xyz[0]=*(xyz+3*atom2_)*bohr_to_ang;
-			atom2_xyz[1]=*(xyz+3*atom2_+1)*bohr_to_ang;
-			atom2_xyz[2]=*(xyz+3*atom2_+2)*bohr_to_ang;
+			atomj_xyz[0]=*(xyz+3*atomj_)*bohr_to_ang;
+			atomj_xyz[1]=*(xyz+3*atomj_+1)*bohr_to_ang;
+			atomj_xyz[2]=*(xyz+3*atomj_+2)*bohr_to_ang;
 
-			atom3_xyz[0]=*(xyz+3*atom3_)*bohr_to_ang;
-			atom3_xyz[1]=*(xyz+3*atom3_+1)*bohr_to_ang;
-			atom3_xyz[2]=*(xyz+3*atom3_+2)*bohr_to_ang;
+			atomk_xyz[0]=*(xyz+3*atomk_)*bohr_to_ang;
+			atomk_xyz[1]=*(xyz+3*atomk_+1)*bohr_to_ang;
+			atomk_xyz[2]=*(xyz+3*atomk_+2)*bohr_to_ang;
 			
-			atom4_xyz[0]=*(xyz+3*atom4_)*bohr_to_ang;
-			atom4_xyz[1]=*(xyz+3*atom4_+1)*bohr_to_ang;
-			atom4_xyz[2]=*(xyz+3*atom4_+2)*bohr_to_ang;
+			atoml_xyz[0]=*(xyz+3*atoml_)*bohr_to_ang;
+			atoml_xyz[1]=*(xyz+3*atoml_+1)*bohr_to_ang;
+			atoml_xyz[2]=*(xyz+3*atoml_+2)*bohr_to_ang;
 
-			double rx12, rx32, rx34;
-			double ry12, ry32, ry34;
-			double rz12, rz32, rz34;
+			std:array<double, 3> vij, vjk, vkl; 
 
-			rx12 = atom1_xyz[0] - atom2_xyz[0];
-			ry12 = atom1_xyz[1] - atom2_xyz[1];
-			rz12 = atom1_xyz[2] - atom2_xyz[2];
+			vij[0] = atomj_xyz[0] - atomi_xyz[0];
+			vij[1] = atomj_xyz[1] - atomi_xyz[1];
+			vij[2] = atomj_xyz[2] - atomi_xyz[2];
 
-			rx32 = atom3_xyz[0] - atom2_xyz[0];
-			ry32 = atom3_xyz[1] - atom2_xyz[1];
-			rz32 = atom3_xyz[2] - atom2_xyz[2];
+			vjk[0] = atomk_xyz[0] - atomj_xyz[0];
+			vjk[1] = atomk_xyz[1] - atomj_xyz[1];
+			vjk[2] = atomk_xyz[2] - atomj_xyz[2];
 
-			rx34 = atom3_xyz[0] - atom4_xyz[0];
-			ry34 = atom3_xyz[1] - atom4_xyz[1];
-			rz34 = atom3_xyz[2] - atom4_xyz[2];
+			vkl[0] = atoml_xyz[0] - atomk_xyz[0];
+			vkl[1] = atoml_xyz[1] - atomk_xyz[1];
+			vkl[2] = atoml_xyz[2] - atomk_xyz[2];
 
-//			cout << rx12 << endl;
-//			cout << ry12 << endl;
-//			cout << rz12 << endl;
-//
-//			cout << rx32 << endl;
-//			cout << ry32 << endl;
-//			cout << rz32 << endl;
-//
-//			cout << rx34 << endl;
-//			cout << ry34 << endl;
-//			cout << rz34 << endl;
-			double mx, my, mz; 
+			vij = Minimum_Image(vij, 10.0);
+			vjk = Minimum_Image(vjk, 10.0);
+			vkl = Minimum_Image(vkl, 10.0);
 
-			mx =  ry12*rz32 - ry32*rz12;
-			my = -rx12*rz32 + rz12*rx32;
-			mz =  rx12*ry32 - ry12*rx32;
+			array3d A=crossp(vij, vjk);
+			array3d B=crossp(vjk, vkl);
 
-			double nx, ny, nz;
+			array3d vjk_norm = Normalize(vjk);
 
-			nx =  ry32*rz34 - rz32*ry34;
-			ny = -rx32*rz34 + rz32*rx34;
-			nz =  rx32*ry34 - ry32*rx34;
+			double X = dotp(crossp(A, B), vjk_norm);
+		        double Y = dotp(A, B);	
 
-			//cout << mx << endl;
-			//cout << my << endl;
-			//cout << mz << endl;
-			//cout << nx << endl;
-			//cout << ny << endl;
-			//cout << nz << endl;
-
-			double msq, abs_m, nsq, abs_n, mdn, r12dn, cosphi;
-
-			msq = mx*mx + my*my + mz*mz;
-			abs_m = std::sqrt(msq);
-			nsq = nx*nx + ny*ny + nz*nz;
-			abs_n = std::sqrt(nsq);
-		
-			// cout << abs_m << endl;
-			// cout << abs_n << endl;
-
-			mdn = mx*nx + my*ny + mz*nz;
-
-			// cout << mdn << endl;
-
-			cosphi = mdn/(abs_m * abs_n);
-
-			// cout << cosphi << endl;
-
-			cosphi = std::min(cosphi, 1.0);
-			cosphi = std::max(cosphi, -1.0);
-			r12dn = rx12*nx + ry12*ny + rz12*nz;
-
-			//bool sign = r12dn > 0 ? true : false;
-
-			double phi = std::acos(cosphi);
-			//phi = sign > true ? -phi : phi;
-			return phi;
+			double phi = atan2(X, Y);
+			return phi; 
 		};
 };
