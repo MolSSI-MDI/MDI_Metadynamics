@@ -47,11 +47,13 @@ int main(int argc, char **argv) {
   }
 
   // Metadynamics
+  
   int niterations = 10;  // Number of MD iterations
-  int natoms;
-  double coords[3*natoms];
-  double forces[3*natoms];
-  char* engine_name = new char[MDI_NAME_LENGTH];
+  double width_colvar1= 10.0;  // Gaussian width of dihedral phi 
+  double width_colvar2= 20.0;  // Gaussian width of dihedral theta
+  int freq = 10; // Frequency of addition of Gaussians
+  
+  // Define collective variables
   CollectiveVariable * colvar = new Dihedral(0, 1, 2, 3);
 
   // Connect to the engines
@@ -59,11 +61,13 @@ int main(int argc, char **argv) {
   comm = MDI_Accept_Communicator();
  
   // Get engine name
+  char* engine_name = new char[MDI_NAME_LENGTH];
   MDI_Send_Command("<NAME", comm); 
   MDI_Recv(engine_name, MDI_NAME_LENGTH, MDI_CHAR, comm);
   cout << "Engine name: " << engine_name << endl;
 
   // Get number of atoms
+  int natoms;
   MDI_Send_Command("<NATOMS", comm);
   MDI_Recv(&natoms, 1, MDI_INT, comm);
   
@@ -72,12 +76,39 @@ int main(int argc, char **argv) {
   // Initialize MD simulation
   MDI_Send_Command("MD_INIT", comm);
 
+
+  // Get simulation box size
+  double cell_size[9];
+
+  MDI_Send_Command("<CELL", comm);
+  MDI_Recv(&cell_size,9, MDI_DOUBLE, comm);
+
+  array3d lo, hi, box_len;
+
+  lo[0] = cell_size[0];
+  lo[1] = cell_size[1];
+  lo[2] = cell_size[2];
+
+  hi[0] = cell_size[3];
+  hi[1] = cell_size[4];
+  hi[2] = cell_size[5];
+
+  box_len[0] = hi[0] - lo[0];
+  box_len[1] = hi[1] - lo[1];
+  box_len[2] = hi[2] - lo[2];
+
+
+  // Get current Cartesian coordinates
+  double coords[3*natoms];
+  double forces[3*natoms];
+
   MDI_Send_Command("<COORDS", comm);
   MDI_Recv(&coords, 3*natoms, MDI_DOUBLE, comm);
-  colvar->Evaluate(coords, natoms);
+  colvar->Evaluate(coords, natoms, box_len);
+  colvar->Compute_gradient(coords, natoms, box_len);
 
-  ////TODO: Would be nice to access coords as matrix
- //// psi = Dihedral(1, 2, 3, 4);
+  colvar -> Get_Value();
+  std::array<array3d, 4> grad = colvar -> Get_Gradient();
 
   //MDI_Send_Command("@FORCES", comm);
 
