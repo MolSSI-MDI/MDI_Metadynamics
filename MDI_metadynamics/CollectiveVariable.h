@@ -16,7 +16,7 @@ class CollectiveVariable
 		virtual void Evaluate(const double xyz[], int, array3d) = 0;
 		virtual void Compute_gradient(const double xyz[], int, array3d) = 0;
 		virtual double Get_Value() = 0;
-		virtual std::array<array3d, 4> Get_Gradient() = 0;
+		virtual array<array3d, 4> Get_Gradient() = 0;
 
 };
 
@@ -47,7 +47,7 @@ class Dihedral: public CollectiveVariable
 			return value_;
 		}
 
-		std::array<array3d, 4> Get_Gradient() override {
+		array<array3d, 4> Get_Gradient() override {
 			return {gradi_,gradj_,gradk_,gradl_};
 		}
 

@@ -3,8 +3,8 @@
 
 using namespace std;
 
-typedef std::array<double, 3> array3d;
-typedef std::array<double, 2> array2d;
+typedef array<double, 3> array3d;
+typedef array<double, 2> array2d;
 
 double Dotp(array3d a, array3d b) {
 
