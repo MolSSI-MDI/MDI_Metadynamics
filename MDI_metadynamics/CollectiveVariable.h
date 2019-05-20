@@ -7,16 +7,16 @@ using namespace std;
 class CollectiveVariable
 {
 	protected:
-		array2d bounds_;
 		double value_;
+		int natoms_;
 
 	public:
 
-		CollectiveVariable(): value_(0.0), bounds_{0,0} {}
+		CollectiveVariable(): value_(0.0) {}
 		virtual void Evaluate(const double xyz[], int, array3d) = 0;
-		virtual void Compute_gradient(const double xyz[], int, array3d) = 0;
 		virtual double Get_Value() = 0;
 		virtual array<array3d, 4> Get_Gradient() = 0;
+		virtual void Set_Forces(double forces[], int, array<array3d, 4> &) = 0;
 
 };
 
@@ -25,13 +25,12 @@ class Dihedral: public CollectiveVariable
 {
         private:
                 int atomi_, atomj_, atomk_, atoml_;
-		array3d rij_, rkj_, rkl_, m_, n_; 
 		array3d gradi_, gradj_, gradk_, gradl_;
-
 
         public:
 
                 Dihedral(int a1, int a2, int a3, int a4) {
+			natoms_ = 4;
                         atomi_ = a1;
                         atomj_ = a2;
                         atomk_ = a3;
@@ -43,6 +42,18 @@ class Dihedral: public CollectiveVariable
 
                 }
 
+                void Set_Forces(double forces[], int natoms, array<array3d, 4> & new_forces) override {
+
+                        for (int idx_atom = 0; idx_atom < 4; idx_atom++) {
+			  for (int idx_dir=0; idx_dir < 2; idx_dir++) {
+
+			    forces[3 * atomi_+idx_dir] = new_forces[idx_atom][idx_dir];
+
+			  }
+			}
+
+		}
+
 		double Get_Value() override {
 			return value_;
 		}
@@ -53,8 +64,10 @@ class Dihedral: public CollectiveVariable
 
 
                 void Evaluate(const double xyz[], int natoms, array3d box_len) override {
-			const double bohr_to_ang = 0.529177;
+
+
 			array3d atomi_xyz, atomj_xyz, atomk_xyz, atoml_xyz;
+
 			atomi_xyz[0]=*(xyz+3*atomi_)*bohr_to_ang;
 			atomi_xyz[1]=*(xyz+3*atomi_+1)*bohr_to_ang;
 			atomi_xyz[2]=*(xyz+3*atomi_+2)*bohr_to_ang;
@@ -71,6 +84,7 @@ class Dihedral: public CollectiveVariable
 			atoml_xyz[1]=*(xyz+3*atoml_+1)*bohr_to_ang;
 			atoml_xyz[2]=*(xyz+3*atoml_+2)*bohr_to_ang;
 
+			array3d rij_, rkj_, rkl_, m_, n_; 
 
 			rij_[0] = atomi_xyz[0] - atomj_xyz[0];
 			rij_[1] = atomi_xyz[1] - atomj_xyz[1];
@@ -97,11 +111,9 @@ class Dihedral: public CollectiveVariable
 		        double Y = Dotp(m_, n_);	
 
 			value_ = atan2(X, Y);
-		};
 
-
-                void Compute_gradient(const double xyz[], int natoms, array3d box_len) override {
-
+			// Now, get the gradient
+			
 			double rkj_norm = Norm(rkj_);
 			double mdotm = Dotp(m_, m_);
 			double ndotn = Dotp(n_, n_);
@@ -136,7 +148,7 @@ class Dihedral: public CollectiveVariable
 				gradk_[i] = gradk_pref1 * n_over_nbar2[i];
 				gradk_[i] += gradk_pref2 * m_over_mbar2[i];
 			}
-			
+
 		};
 
 

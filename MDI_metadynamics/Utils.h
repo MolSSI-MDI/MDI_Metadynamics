@@ -5,6 +5,7 @@ using namespace std;
 
 typedef array<double, 3> array3d;
 typedef array<double, 2> array2d;
+const double bohr_to_ang = 0.529177;
 
 double Dotp(array3d a, array3d b) {
 
