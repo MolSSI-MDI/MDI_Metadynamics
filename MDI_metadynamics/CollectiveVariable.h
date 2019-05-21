@@ -16,7 +16,7 @@ class CollectiveVariable
 		virtual void Evaluate(const double xyz[], int, array3d) = 0;
 		virtual double Get_Value() = 0;
 		virtual array<array3d, 4> Get_Gradient() = 0;
-		virtual void Set_Forces(double forces[], int, array<array3d, 4> &) = 0;
+		virtual void Update_Forces(double forces[], int, array<array3d, 4> &) = 0;
 
 };
 
@@ -42,7 +42,7 @@ class Dihedral: public CollectiveVariable
 
                 }
 
-                void Set_Forces(double forces[], int natoms, array<array3d, 4> & new_forces) override {
+                void Update_Forces(double forces[], int natoms, array<array3d, 4> & new_forces) override {
 
                         for (int idx_atom = 0; idx_atom < 4; idx_atom++) {
 			  for (int idx_dir=0; idx_dir < 2; idx_dir++) {

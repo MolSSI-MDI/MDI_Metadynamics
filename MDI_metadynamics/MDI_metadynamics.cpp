@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
   std::array<double, num_colvars> height;
   height[0] = 0.1; // kcal/mol. Gaussian height of first collective variable.
   
-  const int total_steps = 1;  // Number of MD iterations. Note timestep = 2fs.
+  const int total_steps = 10;  // Number of MD iterations. Note timestep = 2fs.
 
   const int tau_gaussian = 1; // Frequency of addition of Gaussians.
 
@@ -114,6 +114,8 @@ int main(int argc, char **argv) {
 
   for (int time_step = 0; time_step < total_steps; time_step++) {
 
+    cout << "Iteration: " << time_step << " out of " << total_steps << endl;
+
     // Get simulation box size
     double cell_size[9];
 
@@ -134,7 +136,7 @@ int main(int argc, char **argv) {
     box_len[1] = hi[1] - lo[1];
     box_len[2] = hi[2] - lo[2];
 
-    cout << "Read box size successfully. " << endl;
+    cout << "  Read box size successfully. " << endl;
 
     // Get current Cartesian coordinates
    
@@ -142,7 +144,7 @@ int main(int argc, char **argv) {
 
     MDI_Send_Command("<COORDS", comm);
     MDI_Recv(&coords, 3*natoms, MDI_DOUBLE, comm);
-    cout << "Read coordinates successfully. " << endl;
+    cout << "  Read coordinates successfully. " << endl;
 
     // This gets the current values of CVs and gradients
     for (int idx_cv = 0; idx_cv < num_colvars; idx_cv++) {
@@ -190,7 +192,7 @@ int main(int argc, char **argv) {
       }
 
 
-    cout << "Computed bias successfully. " << endl;
+    cout << "  Computed bias successfully. " << endl;
     }
 
 
@@ -212,19 +214,17 @@ int main(int argc, char **argv) {
 
     }
 
-    cout << "Evaluated gradients successfully. " << endl;
+    cout << "  Evaluated gradients successfully. " << endl;
 
     // Set the forces
    
     double forces[3*natoms];
-
     MDI_Send_Command("@FORCES", comm);
-
     MDI_Send_Command("<FORCES", comm);
     MDI_Send(&forces, 3*natoms, MDI_DOUBLE, comm);
 
     array<array3d, 4> delta_force;
-    
+
     for (int idx_cv = 0; idx_cv < num_colvars; idx_cv++) {
     
       array<array3d, 4> ds_dr = colvars[idx_cv] -> Get_Gradient();
@@ -238,14 +238,15 @@ int main(int argc, char **argv) {
 
 	}
       }
-    
-      colvars[idx_cv]->Set_Forces(forces, natoms, delta_force);
+      
+      colvars[idx_cv]->Update_Forces(forces, natoms, delta_force);
 
     }
     
-    // set forces
    
     MDI_Send_Command("@COORDS", comm);
+    cout << "Moved to next step" <<  endl;
+
 
   } // Main MD loop
 
@@ -259,5 +260,6 @@ int main(int argc, char **argv) {
    output_file.close();
    bias_file.close();
 
+   cout << "Finished" << endl;
    return 0;
  }

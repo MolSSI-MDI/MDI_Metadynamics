@@ -28,6 +28,8 @@ pair_modify mix arithmetic
 
 thermo_style custom ebond eangle edihed eimp epair evdwl ecoul elong etail pe
 
+dump 4a all custom 1 dump.myforce.* id type fx fy fz
+
 fix             1 all mdi
 
 mdi
