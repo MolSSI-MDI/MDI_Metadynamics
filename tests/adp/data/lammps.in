@@ -1,4 +1,4 @@
-units real
+units electron
 atom_style full
 
 dimension 3
@@ -26,10 +26,17 @@ pair_coeff 8 8   0.0157000   2.4713530
 
 pair_modify mix arithmetic
 
+velocity all create 300 314159265 units box
+velocity all zero linear units box
+
 thermo_style custom ebond eangle edihed eimp epair evdwl ecoul elong etail pe
+thermo 10
 
-dump 4a all custom 1 dump.myforce.* id type fx fy fz
+dump forceDump all custom 1 dump.force id type fx fy fz
+dump velDump all custom 1 dump.vel id type vx vy vz 
+dump trajDump all atom 1 dump.trj
 
+fix NVT all nvt temp 300 300 100
 fix             1 all mdi
 
 mdi
