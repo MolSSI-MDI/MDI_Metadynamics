@@ -17,6 +17,7 @@ class CollectiveVariable
 		virtual double Get_Value() = 0;
 		virtual array<array3d, 4> Get_Gradient() = 0;
 		virtual array4dint Get_Atoms() = 0;
+		~CollectiveVariable();
 
 };
 
@@ -96,9 +97,9 @@ class Dihedral: public CollectiveVariable
 			rkl_[1] = atomk_xyz[1] - atoml_xyz[1];
 			rkl_[2] = atomk_xyz[2] - atoml_xyz[2];
 
-			rij_ = Minimum_Image(rij_, 10.0);
-			rkj_ = Minimum_Image(rkj_, 10.0);
-			rkl_ = Minimum_Image(rkl_, 10.0);
+			rij_ = Minimum_Image(rij_, box_len);
+			rkj_ = Minimum_Image(rkj_, box_len);
+			rkl_ = Minimum_Image(rkl_, box_len);
 
 			m_=Crossp(rij_, rkj_);
 			n_=Crossp(rkj_, rkl_);

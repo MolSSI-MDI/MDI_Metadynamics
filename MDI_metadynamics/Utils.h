@@ -25,31 +25,31 @@ array3d Crossp (array3d a, array3d b) {
 	return ret;
 }
 
-array3d Minimum_Image(array3d array, double box_length) {
+array3d Minimum_Image(array3d xyz, array3d box_length) {
 
-	if (array[0] > box_length) {
-		array[0] -= box_length;
+	if (xyz[0] > box_length[0]) {
+		xyz[0] -= box_length[0];
 	}
-	else if (array[0] < - box_length) {
-		array[0] += box_length;
+	else if (xyz[0] < - box_length[0]) {
+		xyz[0] += box_length[0];
 	}
-	return array;
+	return xyz;
 
-	if (array[1] > box_length) {
-		array[1] -= box_length;
+	if (xyz[1] > box_length[1]) {
+		xyz[1] -= box_length[1];
 	}
-	else if (array[1] < - box_length) {
-		array[1] += box_length;
+	else if (xyz[1] < - box_length[1]) {
+		xyz[1] += box_length[1];
 	}
 
 
-	if (array[2] > box_length) {
-		array[2] -= box_length;
+	if (xyz[2] > box_length[2]) {
+		xyz[2] -= box_length[2];
 	}
-	else if (array[2] < - box_length) {
-		array[2] += box_length;
+	else if (xyz[2] < - box_length[2]) {
+		xyz[2] += box_length[2];
 	}
-	return array;
+	return xyz;
 }
 
 
