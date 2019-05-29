@@ -50,12 +50,13 @@ int main(int argc, char **argv) {
   }
 
   // Metadynamics settings
+  // TODO: change all arrays to vectors
 
   // Define collective variables 
   const int num_colvars= 1;
 
   array<CollectiveVariable *, num_colvars> colvars;
-  colvars[0] = new Dihedral(0, 1, 2, 3);
+  colvars[0] = new Dihedral(4, 6, 8, 14);
  
   std::array<double, num_colvars> width;
   width[0] = 0.2; // radians. Gaussian width of first collective variable.
@@ -63,15 +64,18 @@ int main(int argc, char **argv) {
   std::array<double, num_colvars> height;
   height[0] = 0.1; // kcal/mol. Gaussian height of first collective variable.
   
-  const int total_steps = 10;  // Number of MD iterations. Note timestep = 2fs.
+  const int total_steps = 20;  // Number of MD iterations. Note timestep = 2fs.
 
-  const int tau_gaussian = 1; // Frequency of addition of Gaussians.
+  const int tau_gaussian = 5; // Frequency of addition of Gaussians.
+
+  const int output_freq = 5;
 
   int current_gaussians = 0; // Number of Gaussians added so far.
 
   const int total_gaussians = total_steps / tau_gaussian; 
 
   array<array2d, total_gaussians> s_of_t; // value of collective variable at time t'.
+  
 
   // Create output file
   ofstream output_file;
@@ -82,7 +86,9 @@ int main(int argc, char **argv) {
 	  return 1;
   }
 
-  output_file << setw(11) << "# Iteration" << setw(15) << "# Colvar" << setw(15) << "# NGaussians" << endl;
+  for (int idx_cv = 0; idx_cv < num_colvars; idx_cv++) {
+    output_file << setw(14) << "# Colvar " << idx_cv <<  endl;
+  }
 
   // Create bias output file
   ofstream bias_file;
@@ -149,16 +155,19 @@ int main(int argc, char **argv) {
     // This gets the current values of CVs and gradients
     for (int idx_cv = 0; idx_cv < num_colvars; idx_cv++) {
       colvars[idx_cv]->Evaluate(coords, natoms, box_len);
+      
+      if (time_step % output_freq == 0) {
+      	output_file << setw(15) << colvars[idx_cv]->Get_Value();
+      }
     }
+      if (time_step % output_freq == 0) {
+    output_file << endl; }
+
   
+
     // Update the bias function
     if (time_step % tau_gaussian == 0) {
 
-      current_gaussians += 1;
-
-      if (current_gaussians > total_gaussians) {
-        return 1;
-      }
 
       // Get the current value of CVs and save it in s_of_t array
       for (int idx_cv = 0; idx_cv < num_colvars; idx_cv++) {
@@ -167,7 +176,7 @@ int main(int argc, char **argv) {
 
       double vg = 0.0;
 
-      for (int idx_t = 0; idx_t < current_gaussians; idx_t++) {
+      for (int idx_t = 0; idx_t <= current_gaussians; idx_t++) {
 
 	double g = 0.0;
 
@@ -184,6 +193,7 @@ int main(int argc, char **argv) {
       }
 
       bias_file << "# Iteration: " << time_step << endl;
+      bias_file << "# NGaussian: " << current_gaussians << endl;
       
       for (int idx_t = 0; idx_t < s_of_t.size(); idx_t++) {
 
@@ -191,6 +201,10 @@ int main(int argc, char **argv) {
 		      
       }
 
+      current_gaussians += 1;
+      if (current_gaussians > total_gaussians) {
+        return 1;
+      }
 
     cout << "  Computed bias successfully. " << endl;
     }
@@ -200,17 +214,19 @@ int main(int argc, char **argv) {
 
     double dVg_ds = 0;
 
-    for (int idx_t = 0; idx_t < current_gaussians; idx_t++){
+    for (int idx_t = 0; idx_t <= current_gaussians-1; idx_t++){
      
       double dg_ds = 0.0;
 
       for (int idx_cv = 0; idx_cv < num_colvars; idx_cv++) {
+
         double s_of_x = colvars[idx_cv]->Get_Value();
         double arg = s_of_x - s_of_t[idx_cv][idx_t];
         dg_ds = dg_ds + Gaussian_derv(arg, width[idx_cv], height[idx_cv]);
+	cout << Gaussian_derv(arg, width[idx_cv], height[idx_cv]) << "  " <<  dg_ds << endl;
       }
 
-    dVg_ds = dVg_ds - dg_ds;
+      dVg_ds = dVg_ds - dg_ds;
 
     }
 
@@ -221,7 +237,7 @@ int main(int argc, char **argv) {
     double forces[3*natoms];
     MDI_Send_Command("@FORCES", comm);
     MDI_Send_Command("<FORCES", comm);
-    MDI_Send(&forces, 3*natoms, MDI_DOUBLE, comm);
+    MDI_Recv(&forces, 3*natoms, MDI_DOUBLE, comm);
 
     array<array3d, 4> delta_force;
 
@@ -229,6 +245,7 @@ int main(int argc, char **argv) {
     
       array<array3d, 4> ds_dr = colvars[idx_cv] -> Get_Gradient();
       
+      array4dint atoms_colvar = colvars[idx_cv]->Get_Atoms();
 
       for (int idx_atom = 0; idx_atom < 4; idx_atom++) {
      
@@ -236,16 +253,19 @@ int main(int argc, char **argv) {
 
           delta_force[idx_atom][idx_dir] = dVg_ds * ds_dr[idx_atom][idx_dir];
 
+	  forces[3 * atoms_colvar[idx_atom]+idx_dir] -= delta_force[idx_atom][idx_dir];
+
 	}
       }
-      
-      colvars[idx_cv]->Update_Forces(forces, natoms, delta_force);
-
+     
     }
     
+    MDI_Send_Command(">FORCES", comm);
+    MDI_Send(&forces, 3*natoms, MDI_DOUBLE, comm);
    
+    cout << "Set biased forces successfully." <<  endl;
     MDI_Send_Command("@COORDS", comm);
-    cout << "Moved to next step" <<  endl;
+    cout << "Moved to next step." <<  endl;
 
 
   } // Main MD loop
