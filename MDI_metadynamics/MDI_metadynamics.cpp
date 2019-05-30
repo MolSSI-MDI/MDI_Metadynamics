@@ -64,9 +64,9 @@ int main(int argc, char **argv) {
   std::array<double, num_colvars> height;
   height[0] = 0.1; // kcal/mol. Gaussian height of first collective variable.
   
-  const int total_steps = 20;  // Number of MD iterations. Note timestep = 2fs.
+  const int total_steps = 1000;  // Number of MD iterations. Note timestep = 2fs.
 
-  const int tau_gaussian = 5; // Frequency of addition of Gaussians.
+  const int tau_gaussian = 500; // Frequency of addition of Gaussians.
 
   const int output_freq = 5;
 
@@ -223,7 +223,7 @@ int main(int argc, char **argv) {
         double s_of_x = colvars[idx_cv]->Get_Value();
         double arg = s_of_x - s_of_t[idx_cv][idx_t];
         dg_ds = dg_ds + Gaussian_derv(arg, width[idx_cv], height[idx_cv]);
-	cout << Gaussian_derv(arg, width[idx_cv], height[idx_cv]) << "  " <<  dg_ds << endl;
+//	cout << s_of_x << "   " << s_of_t[idx_cv][idx_t] << "  " << Gaussian_derv(arg, width[idx_cv], height[idx_cv]) << "  " <<  dg_ds << endl;
       }
 
       dVg_ds = dVg_ds - dg_ds;
@@ -248,7 +248,7 @@ int main(int argc, char **argv) {
       array4dint atoms_colvar = colvars[idx_cv]->Get_Atoms();
 
       for (int idx_atom = 0; idx_atom < 4; idx_atom++) {
-     
+    
         for (int idx_dir = 0; idx_dir < 3; idx_dir++) {
 
           delta_force[idx_atom][idx_dir] = dVg_ds * ds_dr[idx_atom][idx_dir];
