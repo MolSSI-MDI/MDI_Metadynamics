@@ -4,11 +4,9 @@
 #include <string.h>
 #include <iomanip>
 #include <math.h>
-#include "CollectiveVariable.h"
+#include "Dihedral.h"
 #include <fstream>
-extern "C" {
 #include "mdi.h"
-}
 
 using namespace std;
 

@@ -20,7 +20,7 @@ include_directories(${MDI_LOCATION})
 # Compile the driver
 
 add_executable(MDI_metadynamics
-	MDI_metadynamics.cpp Utils.h CollectiveVariable.h)
+	MDI_metadynamics.cpp Utils.cpp Dihedral.cpp)
 target_link_libraries(MDI_metadynamics mdi
                       ${MPI_LIBRARIES})
 
