@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
   MDI_Recv(&natoms, 1, MDI_INT, comm);
   
   // Initialize MD simulation
-  MDI_Send_Command("MD_INIT", comm);
+  MDI_Send_Command("@INIT_MD", comm);
 
   cout << "MD simulation successfully initialized." << endl;
 
