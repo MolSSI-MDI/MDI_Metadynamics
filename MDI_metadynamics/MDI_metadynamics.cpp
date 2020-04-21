@@ -98,8 +98,8 @@ int main(int argc, char **argv) {
   }
 
   // Connect to the engines
-  MDI_Comm comm = MDI_NULL_COMM;
-  comm = MDI_Accept_Communicator();
+  MDI_Comm comm = MDI_COMM_NULL;
+  MDI_Accept_Communicator(&comm);
  
   // Get engine name
   char* engine_name = new char[MDI_NAME_LENGTH];
