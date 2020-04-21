@@ -98,8 +98,8 @@ int main(int argc, char **argv) {
   }
 
   // Connect to the engines
-  MDI_Comm comm = MDI_NULL_COMM;
-  comm = MDI_Accept_Communicator();
+  MDI_Comm comm = MDI_COMM_NULL;
+  MDI_Accept_Communicator(&comm);
  
   // Get engine name
   char* engine_name = new char[MDI_NAME_LENGTH];
@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
   MDI_Recv(&natoms, 1, MDI_INT, comm);
   
   // Initialize MD simulation
-  MDI_Send_Command("MD_INIT", comm);
+  MDI_Send_Command("@INIT_MD", comm);
 
   cout << "MD simulation successfully initialized." << endl;
 
