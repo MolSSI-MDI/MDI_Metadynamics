@@ -49,7 +49,6 @@ int main(int argc, char **argv) {
 
   // Metadynamics settings
   // TODO: change all arrays to vectors
-
   // Define collective variables 
   const int num_colvars= 1;
 
@@ -70,6 +69,8 @@ int main(int argc, char **argv) {
 
   int current_gaussians = 0; // Number of Gaussians added so far.
 
+  bool verbose = true;
+  
   const int total_gaussians = total_steps / tau_gaussian; 
 
   array<array2d, total_gaussians> s_of_t; // value of collective variable at time t'.
@@ -96,6 +97,7 @@ int main(int argc, char **argv) {
 	  cout << "Bias file could not be opened" << endl;
 	  return 1;
   }
+  bias_file << "# Gaussian deposition frequency: " << tau_gaussian << endl;
 
   // Connect to the engines
   MDI_Comm comm = MDI_COMM_NULL;
@@ -114,11 +116,13 @@ int main(int argc, char **argv) {
   // Initialize MD simulation
   MDI_Send_Command("@INIT_MD", comm);
 
-  cout << "MD simulation successfully initialized." << endl;
+  if (verbose)
+	  cout << "MD simulation successfully initialized." << endl;
 
   for (int time_step = 0; time_step < total_steps; time_step++) {
 
-    cout << "Iteration: " << time_step << " out of " << total_steps << endl;
+  	if (verbose)
+   		cout << "Iteration: " << time_step << " out of " << total_steps << endl;
 
     // Get simulation box size
     double cell_size[9];
@@ -140,7 +144,8 @@ int main(int argc, char **argv) {
     box_len[1] = hi[1] - lo[1];
     box_len[2] = hi[2] - lo[2];
 
-    cout << "  Read box size successfully. " << endl;
+    if (verbose)
+    	cout << "  Read box size successfully. " << endl;
 
     // Get current Cartesian coordinates
    
@@ -148,7 +153,9 @@ int main(int argc, char **argv) {
 
     MDI_Send_Command("<COORDS", comm);
     MDI_Recv(&coords, 3*natoms, MDI_DOUBLE, comm);
-    cout << "  Read coordinates successfully. " << endl;
+
+	if (verbose)
+   		cout << "  Read coordinates successfully. " << endl;
 
     // This gets the current values of CVs and gradients
     for (int idx_cv = 0; idx_cv < num_colvars; idx_cv++) {
@@ -165,7 +172,6 @@ int main(int argc, char **argv) {
 
     // Update the bias function
     if (time_step % tau_gaussian == 0) {
-
 
       // Get the current value of CVs and save it in s_of_t array
       for (int idx_cv = 0; idx_cv < num_colvars; idx_cv++) {
@@ -190,25 +196,30 @@ int main(int argc, char **argv) {
 
       }
 
-      bias_file << "# Iteration: " << time_step << endl;
-      bias_file << "# NGaussian: " << current_gaussians << endl;
-      
-      for (int idx_t = 0; idx_t < s_of_t.size(); idx_t++) {
+	  bias_file << vg << setw(10) << colvars[0]->Get_Value() << endl;
 
-	      bias_file << vg << endl;
-		      
-      }
+      //bias_file << "# Iteration: " << time_step << endl;
+      //bias_file << "# NGaussian: " << current_gaussians << endl;
+      //
+      //for (int idx_t = 0; idx_t < s_of_t.size(); idx_t++) {
+
+	  //    bias_file << vg << endl;
+	  //        
+      //}
 
       current_gaussians += 1;
+
       if (current_gaussians > total_gaussians) {
+		cout << " Current gaussians greater than total gaussians. Abort" << endl;
         return 1;
       }
 
-    cout << "  Computed bias successfully. " << endl;
+	if (verbose)
+	    cout << "  Computed bias successfully. " << endl;
     }
 
 
-    // Evaluate the CVs and their gradients wrt to Cartesian coordinates
+    // Evaluate the derivative of Gaussians wrt to Cartesian Coordinates 
 
     double dVg_ds = 0;
 
@@ -227,8 +238,8 @@ int main(int argc, char **argv) {
       dVg_ds = dVg_ds - dg_ds;
 
     }
-
-    cout << "  Evaluated gradients successfully. " << endl;
+	if (verbose)
+	    cout << "  Evaluated gradients successfully. " << endl;
 
     // Set the forces
    
@@ -260,10 +271,14 @@ int main(int argc, char **argv) {
     
     MDI_Send_Command(">FORCES", comm);
     MDI_Send(&forces, 3*natoms, MDI_DOUBLE, comm);
-   
-    cout << "Set biased forces successfully." <<  endl;
+  
+	if (verbose)
+	    cout << "Set biased forces successfully." <<  endl;
+
     MDI_Send_Command("@COORDS", comm);
-    cout << "Moved to next step." <<  endl;
+
+	if (verbose)
+	    cout << "Moved to next step." <<  endl;
 
 
   } // Main MD loop
