@@ -1,4 +1,5 @@
 #include "Utils.h"
+#include <iostream>
 
 using namespace std;
 
@@ -21,28 +22,32 @@ array3d Crossp (array3d a, array3d b) {
 
 array3d Minimum_Image(array3d xyz, array3d box_length) {
 
-	if (xyz[0] > box_length[0]) {
+	array3d h_box_length;
+	h_box_length[0] = box_length[0] / 2;
+	h_box_length[1] = box_length[1] / 2;
+	h_box_length[2] = box_length[2] / 2;
+
+	if (xyz[0] > h_box_length[0]) {
 		xyz[0] -= box_length[0];
 	}
-	else if (xyz[0] < - box_length[0]) {
+	else if (xyz[0] < - h_box_length[0]) {
 		xyz[0] += box_length[0];
 	}
-	return xyz;
 
-	if (xyz[1] > box_length[1]) {
+	if (xyz[1] > h_box_length[1]) {
 		xyz[1] -= box_length[1];
 	}
-	else if (xyz[1] < - box_length[1]) {
+	else if (xyz[1] < - h_box_length[1]) {
 		xyz[1] += box_length[1];
 	}
 
-
-	if (xyz[2] > box_length[2]) {
+	if (xyz[2] > h_box_length[2]) {
 		xyz[2] -= box_length[2];
 	}
-	else if (xyz[2] < - box_length[2]) {
+	else if (xyz[2] < - h_box_length[2]) {
 		xyz[2] += box_length[2];
 	}
+	
 	return xyz;
 }
 
@@ -74,5 +79,5 @@ double Gaussian(double ds, double width, double height) {
 double Gaussian_derv(double ds, double width, double height) {
 	double arg = (ds * ds) / (2. * width * width);
 	double pre = - ds / (width * width);
-	return pre * exp(-arg);
+	return height * pre * exp(-arg);
 }

@@ -4,6 +4,7 @@
 #include <cmath>
 
 typedef std::array<int, 4> array4dint;
+typedef std::array<int, 2> array2dint;
 typedef std::array<double, 3> array3d;
 typedef std::array<double, 2> array2d;
 const double bohr_to_ang = 0.529177;

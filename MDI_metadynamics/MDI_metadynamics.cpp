@@ -4,9 +4,9 @@
 #include <string.h>
 #include <iomanip>
 #include <math.h>
-#include "Dihedral.h"
 #include <fstream>
 #include "mdi.h"
+#include "Distance.h"
 
 using namespace std;
 
@@ -50,16 +50,13 @@ int main(int argc, char **argv) {
   // Metadynamics settings
   // TODO: change all arrays to vectors
   // Define collective variables 
-  const int num_colvars= 1;
 
-  array<CollectiveVariable *, num_colvars> colvars;
-  colvars[0] = new Dihedral(4, 6, 8, 14);
- 
-  std::array<double, num_colvars> width;
-  width[0] = 0.2; // radians. Gaussian width of first collective variable.
+  CollectiveVariable * colvar;
+  colvar = new Distance(1, 2);
 
-  std::array<double, num_colvars> height;
-  height[0] = 0.1; // kcal/mol. Gaussian height of first collective variable.
+  double width = 0.2; // radians. Gaussian width of first collective variable.
+
+  double height = 0.1; // kcal/mol. Gaussian height of first collective variable.
   
   const int total_steps = 1000;  // Number of MD iterations. Note timestep = 2fs.
 
@@ -67,14 +64,24 @@ int main(int argc, char **argv) {
 
   const int output_freq = 5;
 
-  int current_gaussians = 0; // Number of Gaussians added so far.
-
   bool verbose = true;
-  
-  const int total_gaussians = total_steps / tau_gaussian; 
 
-  array<array2d, total_gaussians> s_of_t; // value of collective variable at time t'.
+  const int total_gaussians = total_steps / tau_gaussian; 
   
+  array<double, total_gaussians> s_of_t = {0}; // value of collective variable at time t'.
+  double s_of_x;
+
+  double dVg_ds=0.0;
+
+  double dg_ds=0.0;
+
+  bool in_bounds = true;
+
+  double arg;
+
+  int current_gaussians = 0;
+
+  double colvar_val = 0.0; 
 
   // Create output file
   ofstream output_file;
@@ -85,23 +92,17 @@ int main(int argc, char **argv) {
 	  return 1;
   }
 
-  for (int idx_cv = 0; idx_cv < num_colvars; idx_cv++) {
-    output_file << setw(14) << "# Colvar " << idx_cv <<  endl;
-  }
-
-  // Create bias output file
-  ofstream bias_file;
-  bias_file.open("bias.dat", fstream::app);
-  if (!bias_file)
-  {
-	  cout << "Bias file could not be opened" << endl;
-	  return 1;
-  }
-  bias_file << "# Gaussian deposition frequency: " << tau_gaussian << endl;
+  output_file << "#" << setw(9) << "Time_step";
+  output_file << setw(15) << "Colvar";
+  output_file << setw(10) << "Width";
+  output_file << setw(10) << "Height";
+  output_file << endl;
 
   // Connect to the engines
+  cout << "Before connecting" << endl;
   MDI_Comm comm = MDI_COMM_NULL;
   MDI_Accept_Communicator(&comm);
+  cout << "After connecting" << endl;
  
   // Get engine name
   char* engine_name = new char[MDI_NAME_LENGTH];
@@ -153,116 +154,86 @@ int main(int argc, char **argv) {
    		cout << "  Read coordinates successfully. " << endl;
 
     // This gets the current values of CVs and gradients
-    for (int idx_cv = 0; idx_cv < num_colvars; idx_cv++) {
-      colvars[idx_cv]->Evaluate(coords, natoms, box_len);
-      
-      if (time_step % output_freq == 0) {
-      	output_file << setw(15) << colvars[idx_cv]->Get_Value();
-      }
-    }
-      if (time_step % output_freq == 0) {
-    output_file << endl; }
-
-  
+    std::cout << "COORDS I" << std::endl;
+    std::cout << coords[0] << std::endl;
+    std::cout << coords[1] << std::endl;
+    std::cout << coords[2] << std::endl;
+    std::cout << coords[3] << std::endl;
+    std::cout << coords[4] << std::endl;
+    std::cout << coords[5] << std::endl;
+    colvar -> Evaluate(coords, natoms, box_len);
+    colvar_val = colvar->Get_Value();
 
     // Update the bias function
     if (time_step % tau_gaussian == 0) {
 
-      // Get the current value of CVs and save it in s_of_t array
-      for (int idx_cv = 0; idx_cv < num_colvars; idx_cv++) {
-      	s_of_t[idx_cv][current_gaussians] = colvars[idx_cv]->Get_Value();
-      }
+        output_file << setw(10) << time_step;
+        output_file << setw(15) << colvar_val;
+        output_file << setw(10) << width;
+        output_file << setw(10) << height;
+        output_file << endl;
 
-      double vg = 0.0;
-
-      for (int idx_t = 0; idx_t <= current_gaussians; idx_t++) {
-
-	double g = 0.0;
-
-        for (int idx_cv = 0; idx_cv < num_colvars; idx_cv++) {
-
-          double s_of_x = colvars[idx_cv]->Get_Value();
-          double arg = s_of_x - s_of_t[idx_cv][idx_t];
-          g = g + Gaussian(arg, width[idx_cv], height[idx_cv]);
-
-        }
-
-        vg = vg + g;
-
-      }
-
-	  bias_file << vg << setw(10) << colvars[0]->Get_Value() << endl;
-
-      //bias_file << "# Iteration: " << time_step << endl;
-      //bias_file << "# NGaussian: " << current_gaussians << endl;
-      //
-      //for (int idx_t = 0; idx_t < s_of_t.size(); idx_t++) {
-
-	  //    bias_file << vg << endl;
-	  //        
-      //}
-
-      current_gaussians += 1;
-
-      if (current_gaussians > total_gaussians) {
-		cout << " Current gaussians greater than total gaussians. Abort" << endl;
-        return 1;
-      }
-
-	if (verbose)
-	    cout << "  Computed bias successfully. " << endl;
-    }
-
+        s_of_t[current_gaussians] = colvar_val;
+        current_gaussians++;
+	}
 
     // Evaluate the derivative of Gaussians wrt to Cartesian Coordinates 
-
     double dVg_ds = 0;
+	for (int idx_t = tau_gaussian; idx_t <- time_step; idx_t = idx_t + tau_gaussian) {
+		s_of_x = colvar_val;
+        arg = s_of_x - s_of_t[idx_t / tau_gaussian];
+        dVg_ds = dVg_ds - Gaussian_derv(arg, width, height);
+	}
 
-    for (int idx_t = 0; idx_t <= current_gaussians-1; idx_t++){
-     
-      double dg_ds = 0.0;
+    if (colvar_val < 1.0)
+        dVg_ds += 10 * (colvar_val - 1.0);
+    else if (colvar_val > 15.0)
+        dVg_ds += 10 * (colvar_val - 15.0);
 
-      for (int idx_cv = 0; idx_cv < num_colvars; idx_cv++) {
-
-        double s_of_x = colvars[idx_cv]->Get_Value();
-        double arg = s_of_x - s_of_t[idx_cv][idx_t];
-        dg_ds = dg_ds + Gaussian_derv(arg, width[idx_cv], height[idx_cv]);
-//	cout << s_of_x << "   " << s_of_t[idx_cv][idx_t] << "  " << Gaussian_derv(arg, width[idx_cv], height[idx_cv]) << "  " <<  dg_ds << endl;
-      }
-
-      dVg_ds = dVg_ds - dg_ds;
-
-    }
 	if (verbose)
 	    cout << "  Evaluated gradients successfully. " << endl;
 
     // Set the forces
-   
     double forces[3*natoms];
+
+//  cout << "begin" << endl;
+//  cout << forces[0] << endl;
+//  cout << forces[1] << endl;
+//  cout << forces[2] << endl;
+//  cout << forces[3] << endl;
+//  cout << forces[4] << endl;
+//  cout << forces[5] << endl;
+//  cout << "middle" << endl;
+    cout << colvar_val << endl;
     MDI_Send_Command("@FORCES", comm);
     MDI_Send_Command("<FORCES", comm);
     MDI_Recv(&forces, 3*natoms, MDI_DOUBLE, comm);
-
-    array<array3d, 4> delta_force;
-
-    for (int idx_cv = 0; idx_cv < num_colvars; idx_cv++) {
-    
-      array<array3d, 4> ds_dr = colvars[idx_cv] -> Get_Gradient();
-      
-      array4dint atoms_colvar = colvars[idx_cv]->Get_Atoms();
-
-      for (int idx_atom = 0; idx_atom < 4; idx_atom++) {
-    
-        for (int idx_dir = 0; idx_dir < 3; idx_dir++) {
-
-          delta_force[idx_atom][idx_dir] = dVg_ds * ds_dr[idx_atom][idx_dir];
-
-	  forces[3 * atoms_colvar[idx_atom]+idx_dir] -= delta_force[idx_atom][idx_dir];
-
-	}
-      }
-     
-    }
+    cout << forces[0] << endl;
+    cout << forces[1] << endl;
+    cout << forces[2] << endl;
+    cout << forces[3] << endl;
+    cout << forces[4] << endl;
+    cout << forces[5] << endl;
+    cout << "end" << endl;
+//    array<array3d, 2> delta_force;
+//
+//    for (int idx_cv = 0; idx_cv < num_colvars; idx_cv++) {
+//    
+//      array<array3d, 2> ds_dr = colvars[idx_cv] -> Get_Gradient();
+//      array2dint atoms_colvar = colvars[idx_cv]->Get_Atoms();
+//
+//      for (int idx_atom = 0; idx_atom < 2; idx_atom++) {
+//    
+//        for (int idx_dir = 0; idx_dir < 3; idx_dir++) {
+//
+//          delta_force[idx_atom][idx_dir] = dVg_ds * ds_dr[idx_atom][idx_dir];
+//
+//	  forces[3 * atoms_colvar[idx_atom]+idx_dir] -= delta_force[idx_atom][idx_dir];
+//
+//	}
+//      }
+//     
+//    }
     
     MDI_Send_Command(">FORCES", comm);
     MDI_Send(&forces, 3*natoms, MDI_DOUBLE, comm);
@@ -286,7 +257,6 @@ int main(int argc, char **argv) {
    MPI_Barrier(world_comm);
 
    output_file.close();
-   bias_file.close();
 
    cout << "Finished" << endl;
    return 0;

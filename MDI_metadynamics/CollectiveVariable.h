@@ -13,8 +13,8 @@ class CollectiveVariable
 		CollectiveVariable(): value_(0.0) {}
 		virtual void Evaluate(const double xyz[], int, array3d) = 0;
 		virtual double Get_Value() = 0;
-		virtual std::array<array3d, 4> Get_Gradient() = 0;
-		virtual array4dint Get_Atoms() = 0;
+		virtual std::array<array3d, 2> Get_Gradient() = 0;
+		virtual array2dint Get_Atoms() = 0;
 		~CollectiveVariable();
 
 };
