@@ -132,20 +132,15 @@ int main(int argc, char **argv) {
 
     array3d lo, hi, box_len;
 
-    lo[0] = cell_size[0];
-    lo[1] = cell_size[1];
-    lo[2] = cell_size[2];
+    // NOTE: The following assumes that the cell vectors are orthogonal
+    box_len[0] = cell_size[0];
+    box_len[1] = cell_size[4];
+    box_len[2] = cell_size[8];
 
-    hi[0] = cell_size[3];
-    hi[1] = cell_size[4];
-    hi[2] = cell_size[5];
-
-    box_len[0] = hi[0] - lo[0];
-    box_len[1] = hi[1] - lo[1];
-    box_len[2] = hi[2] - lo[2];
-
-    if (verbose)
-    	cout << "  Read box size successfully. " << endl;
+    if (verbose) {
+      cout << "  Read box size successfully. " << endl;
+      cout << "     Box Size: " << box_len[0] << " " << box_len[1] << " " << box_len[2] << endl;
+    }
 
     // Get current Cartesian coordinates
    
