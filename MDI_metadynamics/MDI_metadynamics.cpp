@@ -48,25 +48,33 @@ int main(int argc, char **argv) {
   }
 
   // Metadynamics settings
-  // TODO: change all arrays to vectors
+
   // Define collective variables 
 
   CollectiveVariable * colvar;
   colvar = new Distance(1, 2);
 
-  double width = 0.2; // radians. Gaussian width of first collective variable.
+  double kcalmol_to_atomic;
 
-  double height = 0.1; // kcal/mol. Gaussian height of first collective variable.
+  MDI_Conversion_Factor("kilocalorie_per_mol","atomic_unit_of_energy", &kcalmol_to_atomic);
+
+  double angstrom_to_atomic;
   
-  const int total_steps = 1000;  // Number of MD iterations. Note timestep = 2fs.
+  MDI_Conversion_Factor("angstrom","atomic_unit_of_length", &angstrom_to_atomic);
 
-  const int tau_gaussian = 500; // Frequency of addition of Gaussians.
+  double kcalmol_per_angstrom_to_atomic = kcalmol_to_atomic / angstrom_to_atomic;
 
-  const int output_freq = 5;
+  double width = 2.0 * angstrom_to_atomic; // Gaussian width of first collective variable.
 
-  bool verbose = true;
+  double height = 0.05 * kcalmol_to_atomic; //Gaussian height of first collective variable.
 
-  const int total_gaussians = total_steps / tau_gaussian; 
+  const int total_steps = 50000000;  // Number of MD iterations. Note timestep = 2fs.
+
+  const int tau_gaussian = 300; // Frequency of addition of Gaussians.
+
+  bool verbose = false;
+
+  const int total_gaussians = (total_steps >= tau_gaussian) ? total_steps / tau_gaussian : 1;
   
   array<double, total_gaussians> s_of_t = {0}; // value of collective variable at time t'.
   double s_of_x;
@@ -93,16 +101,14 @@ int main(int argc, char **argv) {
   }
 
   output_file << "#" << setw(9) << "Time_step";
-  output_file << setw(15) << "Colvar";
-  output_file << setw(10) << "Width";
-  output_file << setw(10) << "Height";
+  output_file << setw(20) << "Colvar";
+  output_file << setw(20) << "Width";
+  output_file << setw(20) << "Height";
   output_file << endl;
 
   // Connect to the engines
-  cout << "Before connecting" << endl;
   MDI_Comm comm = MDI_COMM_NULL;
   MDI_Accept_Communicator(&comm);
-  cout << "After connecting" << endl;
  
   // Get engine name
   char* engine_name = new char[MDI_NAME_LENGTH];
@@ -113,14 +119,16 @@ int main(int argc, char **argv) {
   int natoms;
   MDI_Send_Command("<NATOMS", comm);
   MDI_Recv(&natoms, 1, MDI_INT, comm);
-  
+
+  double forces[3*natoms];
+
   // Initialize MD simulation
   MDI_Send_Command("@INIT_MD", comm);
 
   if (verbose)
 	  cout << "MD simulation successfully initialized." << endl;
 
-  for (int time_step = 0; time_step < total_steps; time_step++) {
+  for (int time_step = 0; time_step < total_steps + 1; time_step++) {
 
   	if (verbose)
    		cout << "Iteration: " << time_step << " out of " << total_steps << endl;
@@ -154,23 +162,16 @@ int main(int argc, char **argv) {
    		cout << "  Read coordinates successfully. " << endl;
 
     // This gets the current values of CVs and gradients
-    std::cout << "COORDS I" << std::endl;
-    std::cout << coords[0] << std::endl;
-    std::cout << coords[1] << std::endl;
-    std::cout << coords[2] << std::endl;
-    std::cout << coords[3] << std::endl;
-    std::cout << coords[4] << std::endl;
-    std::cout << coords[5] << std::endl;
     colvar -> Evaluate(coords, natoms, box_len);
     colvar_val = colvar->Get_Value();
 
     // Update the bias function
-    if (time_step % tau_gaussian == 0) {
+    if (time_step > 0 && time_step % tau_gaussian == 0) {
 
         output_file << setw(10) << time_step;
-        output_file << setw(15) << colvar_val;
-        output_file << setw(10) << width;
-        output_file << setw(10) << height;
+        output_file << setw(20) << colvar_val / angstrom_to_atomic;
+        output_file << setw(20) << width / angstrom_to_atomic;
+        output_file << setw(20) << height / kcalmol_to_atomic;
         output_file << endl;
 
         s_of_t[current_gaussians] = colvar_val;
@@ -178,62 +179,46 @@ int main(int argc, char **argv) {
 	}
 
     // Evaluate the derivative of Gaussians wrt to Cartesian Coordinates 
-    double dVg_ds = 0;
-	for (int idx_t = tau_gaussian; idx_t <- time_step; idx_t = idx_t + tau_gaussian) {
+    dVg_ds = 0;
+	for (int idx_t = tau_gaussian; idx_t < time_step; idx_t = idx_t + tau_gaussian) {
 		s_of_x = colvar_val;
-        arg = s_of_x - s_of_t[idx_t / tau_gaussian];
-        dVg_ds = dVg_ds - Gaussian_derv(arg, width, height);
+        arg = s_of_x - s_of_t[idx_t / tau_gaussian - 1];
+        dVg_ds = dVg_ds + Gaussian_derv(arg, width, height);
 	}
 
-    if (colvar_val < 1.0)
-        dVg_ds += 10 * (colvar_val - 1.0);
-    else if (colvar_val > 15.0)
-        dVg_ds += 10 * (colvar_val - 15.0);
+	// Restraints
+
+//    if (colvar_val < 1.0)
+//         dVg_ds = -0.01 * kcalmol_to_atomic * (colvar_val - 0.5 * angstrom_to_atomic);
+//     else if (colvar_val > 15.0)
+//         dVg_ds = 0.01 * kcalmol_to_atomic * (colvar_val - 14.0 * angstrom_to_atomic);
 
 	if (verbose)
 	    cout << "  Evaluated gradients successfully. " << endl;
 
     // Set the forces
-    double forces[3*natoms];
 
-//  cout << "begin" << endl;
-//  cout << forces[0] << endl;
-//  cout << forces[1] << endl;
-//  cout << forces[2] << endl;
-//  cout << forces[3] << endl;
-//  cout << forces[4] << endl;
-//  cout << forces[5] << endl;
-//  cout << "middle" << endl;
-    cout << colvar_val << endl;
     MDI_Send_Command("@FORCES", comm);
     MDI_Send_Command("<FORCES", comm);
     MDI_Recv(&forces, 3*natoms, MDI_DOUBLE, comm);
-    cout << forces[0] << endl;
-    cout << forces[1] << endl;
-    cout << forces[2] << endl;
-    cout << forces[3] << endl;
-    cout << forces[4] << endl;
-    cout << forces[5] << endl;
-    cout << "end" << endl;
-//    array<array3d, 2> delta_force;
-//
-//    for (int idx_cv = 0; idx_cv < num_colvars; idx_cv++) {
-//    
-//      array<array3d, 2> ds_dr = colvars[idx_cv] -> Get_Gradient();
-//      array2dint atoms_colvar = colvars[idx_cv]->Get_Atoms();
-//
-//      for (int idx_atom = 0; idx_atom < 2; idx_atom++) {
-//    
-//        for (int idx_dir = 0; idx_dir < 3; idx_dir++) {
-//
-//          delta_force[idx_atom][idx_dir] = dVg_ds * ds_dr[idx_atom][idx_dir];
-//
-//	  forces[3 * atoms_colvar[idx_atom]+idx_dir] -= delta_force[idx_atom][idx_dir];
-//
-//	}
-//      }
-//     
-//    }
+
+    array<array3d, 2> delta_force;
+
+    array<array3d, 2> ds_dr = colvar -> Get_Gradient(); // dimensionless 
+	
+    array2dint atoms_colvar = colvar->Get_Atoms();
+
+      for (int idx_atom = 0; idx_atom < 2; idx_atom++) {
+    
+        for (int idx_dir = 0; idx_dir < 3; idx_dir++) {
+
+          delta_force[idx_atom][idx_dir] = dVg_ds * ds_dr[idx_atom][idx_dir];
+
+	  forces[3 * atoms_colvar[idx_atom]+idx_dir] -= delta_force[idx_atom][idx_dir];
+
+		}
+      }
+     
     
     MDI_Send_Command(">FORCES", comm);
     MDI_Send(&forces, 3*natoms, MDI_DOUBLE, comm);
@@ -259,5 +244,6 @@ int main(int argc, char **argv) {
    output_file.close();
 
    cout << "Finished" << endl;
+
    return 0;
  }
