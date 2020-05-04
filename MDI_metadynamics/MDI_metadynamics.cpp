@@ -66,9 +66,10 @@ int main(int argc, char **argv) {
 
   double width = 0.2 * angstrom_to_atomic; // Gaussian width of first collective variable.
 
-  double height = 0.02 * kcalmol_to_atomic; //Gaussian height of first collective variable.
+//  double height = 0.02 * kcalmol_to_atomic; //Gaussian height of first collective variable.
+  double height = 0.0 * kcalmol_to_atomic; //Gaussian height of first collective variable.
 
-  const int total_steps = 65000;  // Number of MD iterations. Note timestep = 2fs.
+  const int total_steps = 80000;  // Number of MD iterations. Note timestep = 2fs.
 
   const int tau_gaussian = 300; // Frequency of addition of Gaussians.
 
@@ -224,7 +225,7 @@ int main(int argc, char **argv) {
      
     
     MDI_Send_Command(">FORCES", comm);
-    MDI_Send(&forces, 3*natoms, MDI_DOUBLE, comm);
+   MDI_Send(&forces, 3*natoms, MDI_DOUBLE, comm);
   
 	if (verbose)
 	    cout << "Set biased forces successfully." <<  endl;

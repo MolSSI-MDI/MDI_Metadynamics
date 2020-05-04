@@ -81,7 +81,7 @@ variable            cellgamma equal cellgamma
 
 #     velocities
 
-velocity            all create 130.0 1164676744 mom yes rot no
+velocity            all create 13.0 1164676744 mom yes rot no
 
 #     NVT dynamics
 
@@ -89,7 +89,7 @@ reset_timestep      0
 timestep            1.0
 thermo_style        custom time temp press etotal ke pe ebond eangle edihed eimp evdwl etail ecoul elong
 thermo              250
-fix                 1 all nvt temp 130.0 130.0 100.0 tchain 3 tloop 1 drag 0.0
+fix                 1 all nvt temp 13.0 13.0 100.0 tchain 3 tloop 1 drag 0.0
 fix                 2 all ave/time 10 250 2500 v_time v_temp v_press v_etotal v_ke v_pe v_epair off 2 title2 'tstep t T P Etot Eke Epe Epair' file summary_nvt_5_iter_1.0_0_3.txt
 fix                 3 all ave/time 25 1 25 v_time v_temp v_press v_etotal v_ke v_pe v_epair off 2 title2 'tstep t T P Etot Eke Epe Epair' file trajectory_nvt_5_iter_1.0_0_3.txt
 dump                trjfile  all custom 1000 dump.lammpstrj id mol type x y z fx fy fz ix iy iz
