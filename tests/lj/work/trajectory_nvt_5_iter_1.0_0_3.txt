@@ -1,2 +1,0 @@
-# Time-averaged data for fix 3
-tstep t T P Etot Eke Epe Epair
