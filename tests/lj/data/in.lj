@@ -2,7 +2,7 @@
 #     initialization of LAMMPS
 
 units               real
-boundary            f f f
+boundary            p p p
 atom_style          full
 atom_modify         sort 0 0.0
 # newton              on
@@ -93,7 +93,6 @@ fix                 1 all nvt temp 13.0 13.0 100.0 tchain 3 tloop 1 drag 0.0
 fix                 2 all ave/time 10 250 2500 v_time v_temp v_press v_etotal v_ke v_pe v_epair off 2 title2 'tstep t T P Etot Eke Epe Epair' file summary_nvt_5_iter_1.0_0_3.txt
 fix                 3 all ave/time 25 1 25 v_time v_temp v_press v_etotal v_ke v_pe v_epair off 2 title2 'tstep t T P Etot Eke Epe Epair' file trajectory_nvt_5_iter_1.0_0_3.txt
 dump                trjfile  all custom 1000 dump.lammpstrj id mol type x y z fx fy fz ix iy iz
-
 
 
 fix 4 all mdi 
