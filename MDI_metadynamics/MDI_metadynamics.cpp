@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
   // Define collective variables 
 
   CollectiveVariable * colvar;
-  colvar = new Distance(1, 2);
+  colvar = new Distance(319, 320);
 
   double kcalmol_to_atomic;
 
@@ -67,13 +67,13 @@ int main(int argc, char **argv) {
   double width = 0.2 * angstrom_to_atomic; // Gaussian width of first collective variable.
 
 //  double height = 0.02 * kcalmol_to_atomic; //Gaussian height of first collective variable.
-  double height = 0.0 * kcalmol_to_atomic; //Gaussian height of first collective variable.
+  double height = 0.2 * kcalmol_to_atomic; //Gaussian height of first collective variable.
 
   const int total_steps = 80000;  // Number of MD iterations. Note timestep = 2fs.
 
   const int tau_gaussian = 300; // Frequency of addition of Gaussians.
 
-  bool verbose = false;
+  bool verbose = true;
 
   const int total_gaussians = (total_steps >= tau_gaussian) ? total_steps / tau_gaussian : 1;
   
@@ -110,11 +110,15 @@ int main(int argc, char **argv) {
   // Connect to the engines
   MDI_Comm comm = MDI_COMM_NULL;
   MDI_Accept_Communicator(&comm);
+  if (verbose)
+  	cout << "Connected to engine." << endl;
  
   // Get engine name
   char* engine_name = new char[MDI_NAME_LENGTH];
   MDI_Send_Command("<NAME", comm); 
   MDI_Recv(engine_name, MDI_NAME_LENGTH, MDI_CHAR, comm);
+  if (verbose)
+  	cout << "Engine name: " << engine_name << endl;
 
   // Get number of atoms
   int natoms;
