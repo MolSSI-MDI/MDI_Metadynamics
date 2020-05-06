@@ -64,16 +64,16 @@ int main(int argc, char **argv) {
 
   double kcalmol_per_angstrom_to_atomic = kcalmol_to_atomic / angstrom_to_atomic;
 
-  double width = 0.2 * angstrom_to_atomic; // Gaussian width of first collective variable.
+  double width = 0.1 * angstrom_to_atomic; // Gaussian width of first collective variable.
 
 //  double height = 0.02 * kcalmol_to_atomic; //Gaussian height of first collective variable.
-  double height = 0.2 * kcalmol_to_atomic; //Gaussian height of first collective variable.
+  double height = 1.0 * kcalmol_to_atomic; //Gaussian height of first collective variable.
 
-  const int total_steps = 80000;  // Number of MD iterations. Note timestep = 2fs.
+  const int total_steps = 100000000;  // Number of MD iterations. Note timestep = 2fs.
 
-  const int tau_gaussian = 300; // Frequency of addition of Gaussians.
+  const int tau_gaussian = 500; // Frequency of addition of Gaussians.
 
-  bool verbose = true;
+  bool verbose = false;
 
   const int total_gaussians = (total_steps >= tau_gaussian) ? total_steps / tau_gaussian : 1;
   
@@ -193,10 +193,10 @@ int main(int argc, char **argv) {
 
 	// Restraints
 
-//    if (colvar_val < 1.0)
-//         dVg_ds = -0.01 * kcalmol_to_atomic * (colvar_val - 0.5 * angstrom_to_atomic);
-//     else if (colvar_val > 15.0)
-//         dVg_ds = 0.01 * kcalmol_to_atomic * (colvar_val - 14.0 * angstrom_to_atomic);
+    if (colvar_val > 14.0)
+         dVg_ds = -10 * kcalmol_to_atomic * (colvar_val - 14.0 * angstrom_to_atomic);
+//     else if (colvar_val > 4.0)
+//         dVg_ds += 200 * kcalmol_to_atomic * (colvar_val - 14.0 * angstrom_to_atomic);
 
 	if (verbose)
 	    cout << "  Evaluated gradients successfully. " << endl;
@@ -207,25 +207,22 @@ int main(int argc, char **argv) {
   MDI_Send_Command("<FORCES", comm);
   MDI_Recv(&forces, 3*natoms, MDI_DOUBLE, comm);
 
-//  for (int idx=0; idx < 3*natoms; idx++)
-//	  cout << forces[idx] << endl;
-
-//    array<array3d, 2> delta_force;
-// 
-//     array<array3d, 2> ds_dr = colvar -> Get_Gradient(); // dimensionless 
-// 	
-//     array2dint atoms_colvar = colvar->Get_Atoms();
-// 
-//       for (int idx_atom = 0; idx_atom < 2; idx_atom++) {
-//     
-//         for (int idx_dir = 0; idx_dir < 3; idx_dir++) {
-// 
-//           delta_force[idx_atom][idx_dir] = dVg_ds * ds_dr[idx_atom][idx_dir];
-// 
-// 	  forces[3 * atoms_colvar[idx_atom]+idx_dir] -= delta_force[idx_atom][idx_dir];
-// 
-// 		}
-//       }
+    array<array3d, 2> delta_force;
+ 
+     array<array3d, 2> ds_dr = colvar -> Get_Gradient(); // dimensionless 
+ 	
+     array2dint atoms_colvar = colvar->Get_Atoms();
+ 
+       for (int idx_atom = 0; idx_atom < 2; idx_atom++) {
+     
+         for (int idx_dir = 0; idx_dir < 3; idx_dir++) {
+ 
+           delta_force[idx_atom][idx_dir] = dVg_ds * ds_dr[idx_atom][idx_dir];
+ 
+ 	  forces[3 * atoms_colvar[idx_atom]+idx_dir] -= delta_force[idx_atom][idx_dir];
+ 
+ 		}
+       }
      
     
     MDI_Send_Command(">FORCES", comm);
