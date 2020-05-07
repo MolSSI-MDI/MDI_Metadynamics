@@ -76,7 +76,9 @@ double Gaussian(double ds, double width, double height) {
 }
 
 double Gaussian_derv(double ds, double width, double height) {
-	double arg = (ds * ds) / (2. * width * width);
-	double pre = - ds / (width * width);
-	return height * pre * exp(-arg);
+//	double arg = (ds * ds) / (2. * width * width);
+//	double pre = - ds / (width * width);
+//	return height * pre * exp(-arg);
+	double gauss = height * exp(-ds*ds/(2.*width*width));
+	return -gauss * (ds/2.0/(width*width));
 }

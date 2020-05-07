@@ -64,15 +64,17 @@ int main(int argc, char **argv) {
 
   double kcalmol_per_angstrom_to_atomic = kcalmol_to_atomic / angstrom_to_atomic;
 
-  double width = 0.1 * angstrom_to_atomic; // Gaussian width of first collective variable.
+  double width = 0.2 * angstrom_to_atomic; // Gaussian width of first collective variable.
 
 //  double height = 0.02 * kcalmol_to_atomic; //Gaussian height of first collective variable.
-  double height = 1.0 * kcalmol_to_atomic; //Gaussian height of first collective variable.
+  double height = 0.1 * kcalmol_to_atomic; //Gaussian height of first collective variable.
 
   const int total_steps = 100000000;  // Number of MD iterations. Note timestep = 2fs.
 
-  const int tau_gaussian = 500; // Frequency of addition of Gaussians.
+  const int tau_gaussian = 400; // Frequency of addition of Gaussians.
 
+  double upper_restraint = 8.0 * angstrom_to_atomic;
+  double k_restraint = 10 * kcalmol_per_angstrom_to_atomic; 
   bool verbose = false;
 
   const int total_gaussians = (total_steps >= tau_gaussian) ? total_steps / tau_gaussian : 1;
@@ -171,7 +173,7 @@ int main(int argc, char **argv) {
     colvar_val = colvar->Get_Value();
 
     // Update the bias function
-    if (time_step > 0 && time_step % tau_gaussian == 0) {
+    if (time_step % tau_gaussian == 0) {
 
         output_file << setw(10) << time_step;
         output_file << setw(20) << colvar_val / angstrom_to_atomic;
@@ -185,16 +187,15 @@ int main(int argc, char **argv) {
 
     // Evaluate the derivative of Gaussians wrt to Cartesian Coordinates 
     dVg_ds = 0;
-	for (int idx_t = tau_gaussian; idx_t < time_step; idx_t = idx_t + tau_gaussian) {
+	for (int idx_t = 0; idx_t < current_gaussians; idx_t++) {
 		s_of_x = colvar_val;
-        arg = s_of_x - s_of_t[idx_t / tau_gaussian - 1];
+        arg = s_of_x - s_of_t[idx_t];
         dVg_ds = dVg_ds + Gaussian_derv(arg, width, height);
 	}
 
 	// Restraints
-
-    if (colvar_val > 14.0)
-         dVg_ds = -10 * kcalmol_to_atomic * (colvar_val - 14.0 * angstrom_to_atomic);
+    if (colvar_val > upper_restraint)
+         dVg_ds = k_restraint * (colvar_val - upper_restraint);
 //     else if (colvar_val > 4.0)
 //         dVg_ds += 200 * kcalmol_to_atomic * (colvar_val - 14.0 * angstrom_to_atomic);
 
@@ -207,22 +208,23 @@ int main(int argc, char **argv) {
   MDI_Send_Command("<FORCES", comm);
   MDI_Recv(&forces, 3*natoms, MDI_DOUBLE, comm);
 
-    array<array3d, 2> delta_force;
+  array<array3d, 2> delta_force;
+  
+  array<array3d, 2> ds_dr = colvar -> Get_Gradient(); // dimensionless 
+  
+  array2dint atoms_colvar = colvar->Get_Atoms();
+  
+  for (int idx_atom = 0; idx_atom < 2; idx_atom++) {
+  
+	cout << atoms_colvar[idx_atom] << endl;
+    for (int idx_dir = 0; idx_dir < 3; idx_dir++) {
  
-     array<array3d, 2> ds_dr = colvar -> Get_Gradient(); // dimensionless 
- 	
-     array2dint atoms_colvar = colvar->Get_Atoms();
- 
-       for (int idx_atom = 0; idx_atom < 2; idx_atom++) {
-     
-         for (int idx_dir = 0; idx_dir < 3; idx_dir++) {
- 
-           delta_force[idx_atom][idx_dir] = dVg_ds * ds_dr[idx_atom][idx_dir];
- 
- 	  forces[3 * atoms_colvar[idx_atom]+idx_dir] -= delta_force[idx_atom][idx_dir];
- 
- 		}
-       }
+      delta_force[idx_atom][idx_dir] = dVg_ds * ds_dr[idx_atom][idx_dir];
+  
+      forces[3 * atoms_colvar[idx_atom]+idx_dir] -= delta_force[idx_atom][idx_dir];
+  
+   	}
+  }
      
     
     MDI_Send_Command(">FORCES", comm);
