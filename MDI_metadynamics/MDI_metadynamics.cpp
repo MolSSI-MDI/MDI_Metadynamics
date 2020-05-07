@@ -74,11 +74,32 @@ int main(int argc, char **argv) {
   const int tau_gaussian = 400; // Frequency of addition of Gaussians.
 
   double upper_restraint = 8.0 * angstrom_to_atomic;
+
   double k_restraint = 10 * kcalmol_per_angstrom_to_atomic; 
+
   bool verbose = false;
 
   const int total_gaussians = (total_steps >= tau_gaussian) ? total_steps / tau_gaussian : 1;
-  
+ 
+  double upper_window = 8.0 * angstrom_to_atomic; 
+
+  double lower_window = 2.4 * angstrom_to_atomic; 
+
+  const int nbins = 5;
+
+  double bin_width = (upper_window - lower_window) / nbins;
+
+  array<double, nbins> grid_centers;
+  array<double, nbins> grid_values;
+
+  grid_centers[0] = lower_window + bin_width / 2; 
+  grid_values[0] = 0.0; 
+  for (int idx_grid=1; idx_grid< nbins; idx_grid++) {
+	  grid_centers[idx_grid] = grid_centers[idx_grid-1] + bin_width;
+      grid_values[idx_grid] = 0.0; 
+  }
+ 
+
   array<double, total_gaussians> s_of_t = {0}; // value of collective variable at time t'.
   double s_of_x;
 
@@ -182,16 +203,27 @@ int main(int argc, char **argv) {
         output_file << endl;
 
         s_of_t[current_gaussians] = colvar_val;
+
+		s_of_x = colvar_val;
+		idx_grid = index_closest(grid_centers, colvar_val);
+        arg = s_of_x - s_of_t[current_gaussians];
+        grid_values[idx_grid] += Gaussian_derv(arg, width, height);
+
         current_gaussians++;
 	}
 
-    // Evaluate the derivative of Gaussians wrt to Cartesian Coordinates 
-    dVg_ds = 0;
-	for (int idx_t = 0; idx_t < current_gaussians; idx_t++) {
-		s_of_x = colvar_val;
-        arg = s_of_x - s_of_t[idx_t];
-        dVg_ds = dVg_ds + Gaussian_derv(arg, width, height);
+	dVg_ds = 0;
+	for (idx_grid=0; idx_grid < nbins; idx_grid++){
+		dVg_ds += grid_values[idx_grid];
 	}
+
+//    // Evaluate the derivative of Gaussians wrt to Cartesian Coordinates 
+//    dVg_ds = 0;
+//	for (int idx_t = 0; idx_t < current_gaussians; idx_t++) {
+//		s_of_x = colvar_val;
+//        arg = s_of_x - s_of_t[idx_t];
+//        dVg_ds = dVg_ds + Gaussian_derv(arg, width, height);
+//	}
 
 	// Restraints
     if (colvar_val > upper_restraint)
@@ -216,7 +248,6 @@ int main(int argc, char **argv) {
   
   for (int idx_atom = 0; idx_atom < 2; idx_atom++) {
   
-	cout << atoms_colvar[idx_atom] << endl;
     for (int idx_dir = 0; idx_dir < 3; idx_dir++) {
  
       delta_force[idx_atom][idx_dir] = dVg_ds * ds_dr[idx_atom][idx_dir];
