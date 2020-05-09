@@ -52,7 +52,7 @@ void Distance::Evaluate(const double xyz[], int natoms, array3d box_len)  {
 	value_ = Norm(rij_);
 
 	for (int i=0; i < 3; i++) {
-		gradi_[i] = rij_[i] / value_;
-		gradj_[i] = - gradi_[i];
+		gradi_[i] = rij_[i];
+		gradj_[i] = -rij_[i];
 	}
 }
