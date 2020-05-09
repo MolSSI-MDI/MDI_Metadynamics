@@ -216,7 +216,6 @@ int main(int argc, char **argv) {
   
   for (int idx_atom = 0; idx_atom < 2; idx_atom++) {
   
-	cout << atoms_colvar[idx_atom] << endl;
     for (int idx_dir = 0; idx_dir < 3; idx_dir++) {
  
       delta_force[idx_atom][idx_dir] = dVg_ds * ds_dr[idx_atom][idx_dir];
