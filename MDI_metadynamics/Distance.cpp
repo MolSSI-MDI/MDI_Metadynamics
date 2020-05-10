@@ -5,8 +5,8 @@ using namespace std;
 
 Distance::Distance(int a1, int a2) {
 	natoms_ = 2;
-    atomi_ = a1 - 1;
-    atomj_ = a2 - 1;
+    atomi_ = a1-1;
+    atomj_ = a2-1;
 	gradi_ = {0.0, 0.0, 0.0};			
 	gradj_ = {0.0, 0.0, 0.0};
 	value_ = 0.0;
@@ -52,7 +52,7 @@ void Distance::Evaluate(const double xyz[], int natoms, array3d box_len)  {
 	value_ = Norm(rij_);
 
 	for (int i=0; i < 3; i++) {
-		gradi_[i] = rij_[i];
-		gradj_[i] = -rij_[i];
+		gradi_[i] = rij_[i] / value_;
+		gradj_[i] = - rij_[i] / value_;
 	}
 }

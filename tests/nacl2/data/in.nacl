@@ -64,8 +64,8 @@ thermo_style 	custom step temp pe ke etotal press lx ly lz xy xz yz
 minimize 1.0e-2 1.0e-3 100 1000
 
 # Write trajectory to file
-dump       natrjfile na custom 300 dump.na.lammpstrj id mol type fx fy fz
-dump       cltrjfile cl custom 300 dump.cl.lammpstrj id mol type fx fy fz
+dump       natrjfile na custom 300 dump.na.lammpstrj id mol type mass x y z
+dump       cltrjfile cl custom 300 dump.cl.lammpstrj id mol type mass x y z
 
 # Start simulation
 

@@ -69,11 +69,12 @@ int main(int argc, char **argv) {
 //  double height = 0.02 * kcalmol_to_atomic; //Gaussian height of first collective variable.
   double height = 0.1 * kcalmol_to_atomic; //Gaussian height of first collective variable.
 
-  const int total_steps = 100000000;  // Number of MD iterations. Note timestep = 2fs.
+  const int total_steps = 100;  // Number of MD iterations. Note timestep = 2fs.
 
   const int tau_gaussian = 400; // Frequency of addition of Gaussians.
 
   double upper_restraint = 8.0 * angstrom_to_atomic;
+  double lower_restraint = 2.4 * angstrom_to_atomic;
 
   double k_restraint = 10 * kcalmol_per_angstrom_to_atomic; 
 
@@ -85,12 +86,14 @@ int main(int argc, char **argv) {
 
   double lower_window = 2.4 * angstrom_to_atomic; 
 
-  const int nbins = 5;
+  const int nbins = 500;
 
   double bin_width = (upper_window - lower_window) / nbins;
 
   array<double, nbins> grid_centers;
   array<double, nbins> grid_values;
+  int idx_grid;
+
 
   grid_centers[0] = lower_window + bin_width / 2; 
   grid_values[0] = 0.0; 
@@ -150,6 +153,11 @@ int main(int argc, char **argv) {
 
   double forces[3*natoms];
 
+  double masses[natoms];
+
+  MDI_Send_Command("<MASSES", comm);
+  MDI_Recv(&masses, natoms, MDI_DOUBLE, comm);
+
   // Initialize MD simulation
   MDI_Send_Command("@INIT_MD", comm);
 
@@ -171,7 +179,7 @@ int main(int argc, char **argv) {
 
     // NOTE: The following assumes that the cell vectors are orthogonal
     box_len[0] = cell_size[0];
-    box_len[1] = cell_size[4];
+    
     box_len[2] = cell_size[8];
 
     if (verbose) {
@@ -186,6 +194,10 @@ int main(int argc, char **argv) {
     MDI_Send_Command("<COORDS", comm);
     MDI_Recv(&coords, 3*natoms, MDI_DOUBLE, comm);
 
+  cout << "MASSES" << endl;
+  for (int i=0; i<natoms;i++){
+  cout << i << " " << masses[i] << " " << coords[i] / angstrom_to_atomic << " " << coords[i+1] / angstrom_to_atomic  << " " << coords[i+2] / angstrom_to_atomic << endl;
+  }
 	if (verbose)
    		cout << "  Read coordinates successfully. " << endl;
 
@@ -202,28 +214,29 @@ int main(int argc, char **argv) {
         output_file << setw(20) << height / kcalmol_to_atomic;
         output_file << endl;
 
-        s_of_t[current_gaussians] = colvar_val;
+		s_of_t[current_gaussians] = colvar_val;
+		current_gaussians++;
+		
+//		for (idx_grid = 0; idx_grid < nbins; idx_grid++) {
+//        	arg = colvar_val - grid_centers[idx_grid];
+//         	grid_values[idx_grid] += Gaussian_derv(arg, width, height);
+//		}
 
+	}
+
+//    idx_grid = floor((colvar_val- grid_centers[0]) / bin_width);
+//    if (idx_grid < 0) {
+//        idx_grid = 0;
+//    }   
+//    dVg_ds = grid_values[idx_grid];
+
+  // Evaluate the derivative of Gaussians wrt to Cartesian Coordinates 
+    dVg_ds = 0;
+	for (int idx_t = 0; idx_t < current_gaussians; idx_t++) {
 		s_of_x = colvar_val;
-		idx_grid = index_closest(grid_centers, colvar_val);
-        arg = s_of_x - s_of_t[current_gaussians];
-        grid_values[idx_grid] += Gaussian_derv(arg, width, height);
-
-        current_gaussians++;
+        arg = s_of_x - s_of_t[idx_t];
+        dVg_ds = dVg_ds + Gaussian_derv(arg, width, height);
 	}
-
-	dVg_ds = 0;
-	for (idx_grid=0; idx_grid < nbins; idx_grid++){
-		dVg_ds += grid_values[idx_grid];
-	}
-
-//    // Evaluate the derivative of Gaussians wrt to Cartesian Coordinates 
-//    dVg_ds = 0;
-//	for (int idx_t = 0; idx_t < current_gaussians; idx_t++) {
-//		s_of_x = colvar_val;
-//        arg = s_of_x - s_of_t[idx_t];
-//        dVg_ds = dVg_ds + Gaussian_derv(arg, width, height);
-//	}
 
 	// Restraints
     if (colvar_val > upper_restraint)
@@ -260,7 +273,7 @@ int main(int argc, char **argv) {
     
     MDI_Send_Command(">FORCES", comm);
    MDI_Send(&forces, 3*natoms, MDI_DOUBLE, comm);
-  
+
 	if (verbose)
 	    cout << "Set biased forces successfully." <<  endl;
 
