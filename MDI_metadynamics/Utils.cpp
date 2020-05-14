@@ -21,32 +21,9 @@ array3d Crossp (array3d a, array3d b) {
 
 array3d Minimum_Image(array3d xyz, array3d box_length) {
 
-	array3d h_box_length;
-	h_box_length[0] = box_length[0] / 2;
-	h_box_length[1] = box_length[1] / 2;
-	h_box_length[2] = box_length[2] / 2;
-
-	if (xyz[0] > h_box_length[0]) {
-		xyz[0] -= box_length[0];
-	}
-	else if (xyz[0] < - h_box_length[0]) {
-		xyz[0] += box_length[0];
-	}
-
-	if (xyz[1] > h_box_length[1]) {
-		xyz[1] -= box_length[1];
-	}
-	else if (xyz[1] < - h_box_length[1]) {
-		xyz[1] += box_length[1];
-	}
-
-	if (xyz[2] > h_box_length[2]) {
-		xyz[2] -= box_length[2];
-	}
-	else if (xyz[2] < - h_box_length[2]) {
-		xyz[2] += box_length[2];
-	}
-	
+    xyz[0] = xyz[0] - box_length[0] * round(xyz[0] / box_length[0]);
+    xyz[1] = xyz[1] - box_length[1] * round(xyz[1] / box_length[1]);
+    xyz[2] = xyz[2] - box_length[2] * round(xyz[2] / box_length[2]);
 	return xyz;
 }
 
