@@ -42,6 +42,7 @@ int main(int argc, char **argv) {
       throw runtime_error("Unrecognized option.");
     }
 
+
   }
   if ( not initialized_mdi ) {
     throw runtime_error("The -mdi command line option was not provided.");
@@ -52,72 +53,57 @@ int main(int argc, char **argv) {
   // Define collective variables 
 
   CollectiveVariable * colvar;
-  colvar = new Distance(319, 320);
 
+  //CONVERSION FACTORS
   double kcalmol_to_atomic;
-
   MDI_Conversion_Factor("kilocalorie_per_mol","atomic_unit_of_energy", &kcalmol_to_atomic);
-
   double angstrom_to_atomic;
-  
   MDI_Conversion_Factor("angstrom","atomic_unit_of_length", &angstrom_to_atomic);
-
   double kcalmol_per_angstrom_to_atomic = kcalmol_to_atomic / angstrom_to_atomic;
 
-  double width = 0.2 * angstrom_to_atomic; // Gaussian width of first collective variable.
+  string line;
+  ifstream input_file ("input.inp");
+	getline(input_file, line);
+	int atom_i = stoi(line);
+	getline(input_file, line);
+	int atom_j = stoi(line);
+	getline(input_file, line);
+	double width = stod(line);
+	getline(input_file, line);
+	double height = stod(line);
+    input_file.close();
 
-//  double height = 0.02 * kcalmol_to_atomic; //Gaussian height of first collective variable.
-  double height = 0.1 * kcalmol_to_atomic; //Gaussian height of first collective variable.
-
-  const int total_steps = 100;  // Number of MD iterations. Note timestep = 2fs.
-
-  const int tau_gaussian = 400; // Frequency of addition of Gaussians.
-
-  double upper_restraint = 8.0 * angstrom_to_atomic;
-  double lower_restraint = 2.4 * angstrom_to_atomic;
-
-  double k_restraint = 10 * kcalmol_per_angstrom_to_atomic; 
+	cout << "Parameters read from file" << endl;
+	cout << "atom i: " << atom_i << endl;
+	cout << "atom j: " << atom_j << endl;
+	cout << "width: " << width << endl;
+	cout << "height: " << height << endl;
+	
+    colvar = new Distance(atom_i, atom_j);
+    width = width * angstrom_to_atomic; // Gaussian width of first collective variable.
+    height = height * kcalmol_to_atomic; //Gaussian height of first collective variable.
+    const int total_steps = 10000000;  // Number of MD iterations. Note timestep = 2fs.
+    const int tau_gaussian = 400; // Frequency of addition of Gaussians.
+	cout << "total steps: " << total_steps << endl;
+	cout << "tau_gaussian: " << tau_gaussian << endl;
 
   bool verbose = false;
-
   const int total_gaussians = (total_steps >= tau_gaussian) ? total_steps / tau_gaussian : 1;
+
+  // RESTRAINT PARAMETERS
+  double upper_restraint = 8.0 * angstrom_to_atomic;
+  double lower_restraint = 2.4 * angstrom_to_atomic;
+  double k_restraint = 10 * kcalmol_per_angstrom_to_atomic; 
  
-  double upper_window = 8.0 * angstrom_to_atomic; 
-
-  double lower_window = 2.4 * angstrom_to_atomic; 
-
-  const int nbins = 500;
-
-  double bin_width = (upper_window - lower_window) / nbins;
-
-  array<double, nbins> grid_centers;
-  array<double, nbins> grid_values;
-  int idx_grid;
-
-
-  grid_centers[0] = lower_window + bin_width / 2; 
-  grid_values[0] = 0.0; 
-  for (int idx_grid=1; idx_grid< nbins; idx_grid++) {
-	  grid_centers[idx_grid] = grid_centers[idx_grid-1] + bin_width;
-      grid_values[idx_grid] = 0.0; 
-  }
- 
-
   array<double, total_gaussians> s_of_t = {0}; // value of collective variable at time t'.
-  double s_of_x;
-
+  double s_of_x=0.0;
   double dVg_ds=0.0;
-
   double dg_ds=0.0;
-
-  bool in_bounds = true;
-
   double arg;
-
   int current_gaussians = 0;
-
   double colvar_val = 0.0; 
 
+ 
   // Create output file
   ofstream output_file;
   output_file.open("output.dat", fstream::app);
@@ -153,11 +139,6 @@ int main(int argc, char **argv) {
 
   double forces[3*natoms];
 
-  double masses[natoms];
-
-  MDI_Send_Command("<MASSES", comm);
-  MDI_Recv(&masses, natoms, MDI_DOUBLE, comm);
-
   // Initialize MD simulation
   MDI_Send_Command("@INIT_MD", comm);
 
@@ -179,7 +160,7 @@ int main(int argc, char **argv) {
 
     // NOTE: The following assumes that the cell vectors are orthogonal
     box_len[0] = cell_size[0];
-    
+	box_len[1] = cell_size[4];    
     box_len[2] = cell_size[8];
 
     if (verbose) {
@@ -194,10 +175,6 @@ int main(int argc, char **argv) {
     MDI_Send_Command("<COORDS", comm);
     MDI_Recv(&coords, 3*natoms, MDI_DOUBLE, comm);
 
-  cout << "MASSES" << endl;
-  for (int i=0; i<natoms;i++){
-  cout << i << " " << masses[i] << " " << coords[i] / angstrom_to_atomic << " " << coords[i+1] / angstrom_to_atomic  << " " << coords[i+2] / angstrom_to_atomic << endl;
-  }
 	if (verbose)
    		cout << "  Read coordinates successfully. " << endl;
 
@@ -216,19 +193,7 @@ int main(int argc, char **argv) {
 
 		s_of_t[current_gaussians] = colvar_val;
 		current_gaussians++;
-		
-//		for (idx_grid = 0; idx_grid < nbins; idx_grid++) {
-//        	arg = colvar_val - grid_centers[idx_grid];
-//         	grid_values[idx_grid] += Gaussian_derv(arg, width, height);
-//		}
-
 	}
-
-//    idx_grid = floor((colvar_val- grid_centers[0]) / bin_width);
-//    if (idx_grid < 0) {
-//        idx_grid = 0;
-//    }   
-//    dVg_ds = grid_values[idx_grid];
 
   // Evaluate the derivative of Gaussians wrt to Cartesian Coordinates 
     dVg_ds = 0;
@@ -241,8 +206,6 @@ int main(int argc, char **argv) {
 	// Restraints
     if (colvar_val > upper_restraint)
          dVg_ds = k_restraint * (colvar_val - upper_restraint);
-//     else if (colvar_val > 4.0)
-//         dVg_ds += 200 * kcalmol_to_atomic * (colvar_val - 14.0 * angstrom_to_atomic);
 
 	if (verbose)
 	    cout << "  Evaluated gradients successfully. " << endl;
@@ -269,18 +232,17 @@ int main(int argc, char **argv) {
   
    	}
   }
-     
     
-    MDI_Send_Command(">FORCES", comm);
+   MDI_Send_Command(">FORCES", comm);
    MDI_Send(&forces, 3*natoms, MDI_DOUBLE, comm);
 
-	if (verbose)
-	    cout << "Set biased forces successfully." <<  endl;
-
-    MDI_Send_Command("@COORDS", comm);
-
-	if (verbose)
-	    cout << "Moved to next step." <<  endl;
+   if (verbose)
+       cout << "Set biased forces successfully." <<  endl;
+   
+   MDI_Send_Command("@COORDS", comm);
+   
+   if (verbose)
+       cout << "Moved to next step." <<  endl;
 
 
   } // Main MD loop
