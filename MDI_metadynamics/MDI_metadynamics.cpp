@@ -71,6 +71,10 @@ int main(int argc, char **argv) {
 	double width = stod(line);
 	getline(input_file, line);
 	double height = stod(line);
+	getline(input_file, line);
+	int total_steps = stod(line);
+	getline(input_file, line);
+	int tau_gaussian = stod(line);
     input_file.close();
 
 	cout << "Parameters read from file" << endl;
@@ -78,24 +82,22 @@ int main(int argc, char **argv) {
 	cout << "atom j: " << atom_j << endl;
 	cout << "width: " << width << endl;
 	cout << "height: " << height << endl;
+	cout << "total steps: " << total_steps << endl;
+	cout << "tau_gaussian: " << tau_gaussian << endl;
 	
     colvar = new Distance(atom_i, atom_j);
     width = width * angstrom_to_atomic; // Gaussian width of first collective variable.
     height = height * kcalmol_to_atomic; //Gaussian height of first collective variable.
-    const int total_steps = 10000000;  // Number of MD iterations. Note timestep = 2fs.
-    const int tau_gaussian = 400; // Frequency of addition of Gaussians.
-	cout << "total steps: " << total_steps << endl;
-	cout << "tau_gaussian: " << tau_gaussian << endl;
 
   bool verbose = false;
   const int total_gaussians = (total_steps >= tau_gaussian) ? total_steps / tau_gaussian : 1;
 
   // RESTRAINT PARAMETERS
-  double upper_restraint = 8.0 * angstrom_to_atomic;
+  double upper_restraint = 14.0 * angstrom_to_atomic;
   double lower_restraint = 2.4 * angstrom_to_atomic;
   double k_restraint = 10 * kcalmol_per_angstrom_to_atomic; 
- 
-  array<double, total_gaussians> s_of_t = {0}; // value of collective variable at time t'.
+
+  vector<double> s_of_t(total_gaussians, 0.0); // value of collective variable at time t'.
   double s_of_x=0.0;
   double dVg_ds=0.0;
   double dg_ds=0.0;
@@ -156,7 +158,7 @@ int main(int argc, char **argv) {
     MDI_Send_Command("<CELL", comm);
     MDI_Recv(&cell_size,9, MDI_DOUBLE, comm);
 
-    array3d lo, hi, box_len;
+    array3d box_len;
 
     // NOTE: The following assumes that the cell vectors are orthogonal
     box_len[0] = cell_size[0];

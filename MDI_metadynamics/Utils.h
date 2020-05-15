@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <vector>
 #include <cmath>
 
 typedef std::array<int, 4> array4dint;
