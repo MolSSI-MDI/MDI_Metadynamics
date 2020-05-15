@@ -12,9 +12,9 @@ cp -r data work
 cd work
 
 #launch LAMMPS
-${LAMMPS_LOC} -mdi "-role ENGINE -name LAMMPS -method TCP -port 9021 -hostname localhost" -in in.nacl > lammps.out &
+${LAMMPS_LOC} -mdi "-role ENGINE -name LAMMPS -method TCP -port 8021 -hostname localhost" -in in.nacl > lammps.out &
 
 #launch driver
-${DRIVER_LOC} -mdi "-role DRIVER -name driver -method TCP -port 9021" &
+${DRIVER_LOC} -mdi "-role DRIVER -name driver -method TCP -port 8021" &
 
 wait
