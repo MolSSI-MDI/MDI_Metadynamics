@@ -75,6 +75,12 @@ int main(int argc, char **argv) {
 	int total_steps = stod(line);
 	getline(input_file, line);
 	int tau_gaussian = stod(line);
+	getline(input_file, line);
+	double upper_restraint = stod(line);
+	getline(input_file, line);
+	double lower_restraint = stod(line);
+	getline(input_file, line);
+	double k_restraint = stod(line);
     input_file.close();
 
 	cout << "Parameters read from file" << endl;
@@ -84,18 +90,19 @@ int main(int argc, char **argv) {
 	cout << "height: " << height << endl;
 	cout << "total steps: " << total_steps << endl;
 	cout << "tau_gaussian: " << tau_gaussian << endl;
-	
+	cout << "upper_restraint: " << upper_restraint << endl;
+	cout << "lower_restraint: " << lower_restraint << endl;
+	cout << "k_restraint: " << k_restraint << endl;
+
     colvar = new Distance(atom_i, atom_j);
-    width = width * angstrom_to_atomic; // Gaussian width of first collective variable.
-    height = height * kcalmol_to_atomic; //Gaussian height of first collective variable.
+    width *= angstrom_to_atomic; // Gaussian width of first collective variable.
+    height *= kcalmol_to_atomic; //Gaussian height of first collective variable.
+	upper_restraint *= angstrom_to_atomic;
+	lower_restraint *= angstrom_to_atomic;
+	k_restraint *= kcalmol_per_angstrom_to_atomic; 
 
   bool verbose = false;
   const int total_gaussians = (total_steps >= tau_gaussian) ? total_steps / tau_gaussian : 1;
-
-  // RESTRAINT PARAMETERS
-  double upper_restraint = 14.0 * angstrom_to_atomic;
-  double lower_restraint = 2.4 * angstrom_to_atomic;
-  double k_restraint = 10 * kcalmol_per_angstrom_to_atomic; 
 
   vector<double> s_of_t(total_gaussians, 0.0); // value of collective variable at time t'.
   double s_of_x=0.0;
