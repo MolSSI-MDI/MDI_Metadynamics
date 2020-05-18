@@ -4,7 +4,8 @@ __pycache__/
 *$py.class
 
 # MDI files
-tests/adp/work
+tests/*/work
+tests/*/work
 
 # Lammps files
 *.out
