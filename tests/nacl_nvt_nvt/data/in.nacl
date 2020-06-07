@@ -1,21 +1,16 @@
-
 #     initialization of LAMMPS
-
 log                 nvt.log
 units               real
 boundary            p p p
 atom_style          full
 atom_modify         sort 0 0.0
 newton              on
-
 #    define the style of forcefield
-
 pair_style          lj/cut/coul/long 10.0
 pair_modify         mix geometric tail yes shift no
 kspace_style        ewald 1e-5
 bond_style          harmonic
 angle_style         harmonic
-
 read_data           data.nacl 
 variable            step equal step
 variable            elapsed equal elapsed
@@ -82,9 +77,7 @@ variable            cellc equal cellc
 variable            cellalpha equal cellalpha
 variable            cellbeta equal cellbeta
 variable            cellgamma equal cellgamma
-
 #     velocities
-
 velocity            all create 298.15 219030252 mom yes rot no
 #     NVT dynamics
 reset_timestep      0
@@ -101,18 +94,18 @@ reset_timestep      0
 unfix               1
 unfix               2
 unfix               3
+unfix               4
 undump              traj_nvt
 log                 nvt2.log
 thermo              0
-fix                 5 all ave/time 10 250 2500 v_time v_temp v_press v_vol v_etotal v_ke v_pe v_epair off 2 title2 'tstep t T P V Etot Eke Epe Epair' file summary_nvt2_5_3.txt
-fix                 6 all ave/time 50 1 50 v_time v_temp v_press v_vol v_etotal v_ke v_pe v_epair off 2 title1 '!MolSSI trajectory 1.0 LAMMPS, NVT2 500 steps of 100.0 fs, T=298.15 K' title2 'tstep t T P V Etot Eke Epe Epair' file trajectory_nvt2_5_3.seamm_trj
+fix                 1 all nvt temp 298.15 298.15 100.0 tchain 3 tloop 1 drag 0.0
+fix                 2 all ave/time 10 250 2500 v_time v_temp v_press v_vol v_etotal v_ke v_pe v_epair off 2 title2 'tstep t T P V Etot Eke Epe Epair' file summary_nvt2_5_3.txt
+fix                 3 all ave/time 50 1 50 v_time v_temp v_press v_vol v_etotal v_ke v_pe v_epair off 2 title1 '!MolSSI trajectory 1.0 LAMMPS, NVT2 500 steps of 100.0 fs, T=298.15 K' title2 'tstep t T P V Etot Eke Epe Epair' file trajectory_nvt2_5_3.seamm_trj
+fix                 4 all rattle 0.001 20 1000 b  1 a  1
+fix                 5 all mdi 
 dump                traj_nvt2 all custom 10000 nvt2.trj id element mol x y z
-fix                 7 all nvt temp 298.15 298.15 100.0 tchain 3 tloop 1 drag 0.0
-fix                 8 all mdi 
 mdi
 #run                 10000
-
-
 unfix               4
 unfix               6
 unfix               7

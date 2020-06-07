@@ -22,8 +22,8 @@ hills_ref = np.loadtxt('work/output.dat')
 #hills_ref[:,3] *= 4.184
 
 start_mdi = 0
-stop_mdi = 1500
-stride_mdi = 100
+stop_mdi = 6000
+stride_mdi = 1000
 s_min_mdi = 1.0
 s_max_mdi = 10
 
