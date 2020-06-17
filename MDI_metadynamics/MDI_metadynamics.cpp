@@ -195,9 +195,9 @@ int main(int argc, char **argv) {
     if (time_step % tau_gaussian == 0) {
 
         output_file << setw(10) << time_step;
-        output_file << setw(20) << colvar_val / angstrom_to_atomic;
-        output_file << setw(20) << width / angstrom_to_atomic;
-        output_file << setw(20) << height / kcalmol_to_atomic;
+        output_file << setw(20) << setprecision(16) << colvar_val / angstrom_to_atomic;
+        output_file << setw(20) << setprecision(10) << width / angstrom_to_atomic;
+        output_file << setw(20) << setprecision(10) << height / kcalmol_to_atomic;
         output_file << endl;
 
 		s_of_t[current_gaussians] = colvar_val;
