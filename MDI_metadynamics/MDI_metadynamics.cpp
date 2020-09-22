@@ -206,6 +206,7 @@ int main(int argc, char **argv) {
 
   // Evaluate the derivative of Gaussians wrt to Cartesian Coordinates 
     dVg_ds = 0;
+
 	for (int idx_t = 0; idx_t < current_gaussians; idx_t++) {
 		s_of_x = colvar_val;
         arg = s_of_x - s_of_t[idx_t];
@@ -215,6 +216,10 @@ int main(int argc, char **argv) {
 	// Restraints
     if (colvar_val > upper_restraint)
          dVg_ds = k_restraint * (colvar_val - upper_restraint);
+
+//	// Restraints
+//    if (colvar_val < lower_restraint)
+//         dVg_ds = k_restraint * (colvar_val - upper_restraint);
 
 	if (verbose)
 	    cout << "  Evaluated gradients successfully. " << endl;
